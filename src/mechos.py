@@ -9,18 +9,19 @@ class Node:
     node contains multiple communication gateways such as pub/sub, pull/req, and
     services.
     '''
-    def __init__(self, node_name):
+    def __init__(self, node_name, device_connection='tcp://127.0.0.101'):
         '''
         Initialize a node and connect to the master mechoscore.
 
         Parameters:
             node_name: The name of the node
-
+            device_connection: The tcp IP of the mechoscore to connect to.
+                                Default is tcp://127.0.0.101
         Returns:
             N/A
         '''
         self._node_name = node_name
-
+        self._device_connection = device_connection
         #Only a single publihser/subscriber context should be made per one node. Since
         #each node runs in a single process.
         self._pub_context = zmq.Context()
@@ -52,26 +53,29 @@ class Node:
             N/A
         '''
 
-    def create_publisher(self, topic):
+
+    def create_publisher(self, topic, pub_port="5559"):
         '''
         Create a publisher from pub_context, and connect it to the mechoscore
         pub/sub handler to communicate using the topic name.
 
         Paramters:
             topic:A well-defined topic name to publish messages to
-
+            pub_port: The port to connect the socket the publisher to
+                        mechoscore. Default 5559
         Returns:
             N/A
         '''
 
-        new_pub = Node._Publisher(topic, self._pub_context)
+        new_pub = Node._Publisher(topic, self._pub_context,
+                                    self._device_connection, pub_port)
 
         #TODO: Have node store information about newly created publishers
         self._node_pubs.append(new_pub)
 
         return new_pub
 
-    def create_subscriber(self, topic, callback, timeout=1):
+    def create_subscriber(self, topic, callback, timeout=1, sub_port="5560"):
         '''
         Create a subscriber and connect it to mechoscore pub/sub handler to
         receiver data from a publisher using the same topic name.
@@ -85,11 +89,13 @@ class Node:
             timeout: The time in seconds the poller will hold before
                     exiting if no messages are received. Keeps the direct
                     listening of messages from freezing up. Default 1 second
+            sub_port: The port to connect the subscriber socket to mechoscore.
+                        Default 5560
         Returns:
             N/A
         '''
         new_sub = Node._Subscriber(topic, callback, self._sub_context,
-                                    timeout)
+                                    timeout, self._device_connection, sub_port)
 
         #TODO: Have node store information about newly created subscribers
         self._callback_queue.add(callback)
@@ -130,7 +136,8 @@ class Node:
         of the same topic.
         '''
 
-        def __init__(self, topic, pub_context):
+        def __init__(self, topic, pub_context,
+                    device_connection='tcp://127.0.0.101', pub_port="5559"):
             '''
             Initialize a publisher by connecting to the pub/sub handler running
             in the mechoscore.By default, publishers connect to
@@ -140,10 +147,13 @@ class Node:
                 topic: A well-defined topic name to publish messages to
                 pub_context: The zmq context to keep control of all the
                             publishers in the node.
+                device_connection: The TCP IP address to connect to. Default is
+                                    tcp://127.0.0.101
+                pub_port: The tcp socket to connect the socket to.
             '''
             self._topic = topic
-            self._pub_port = "5559"
-            self._socket_connection = "tcp://127.0.0.101:%s" % self._pub_port
+            self._pub_port = pub_port
+            self._socket_connection = device_connection + (":%s" % self._pub_port)
 
             #create a publisher socket connection
             self._pub_socket = pub_context.socket(zmq.PUB)
@@ -176,7 +186,8 @@ class Node:
         a well-defined name, and will listen to messages being routed
         from mechoscore from publishers.
         '''
-        def __init__(self, topic, callback, context, timeout=1, sub_port="5560"):
+        def __init__(self, topic, callback, context, timeout=1,
+                        device_connection='tcp://127.0.0.101', sub_port="5560"):
             '''
             Initialize the parameters for a subscriber
 
@@ -189,6 +200,9 @@ class Node:
                 timeout: The time in seconds the poller will hold before
                         exiting if no messages are received. Keeps the direct
                         listening of messages from freezing up.
+                device_connection: device_connection: The tcp IP of the mechoscore to connect to.
+                                    Default is tcp://127.0.0.101
+                sub_port: The port to connect the subscriber topic to.
             '''
             self._sub_port = sub_port
             self._topic = topic
@@ -197,7 +211,7 @@ class Node:
             self._sub_context = context
 
             self._sub_socket = self._sub_context.socket(zmq.SUB)
-            self._socket_connection = "tcp://127.0.0.101:%s" % self._sub_port
+            self._socket_connection = device_connection + (":%s" % self._sub_port)
 
             #connect subscriber socket to mechoscore
             print("Waiting to connect subscriber", self._topic, "to",
