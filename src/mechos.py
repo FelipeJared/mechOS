@@ -9,7 +9,8 @@ class Node:
     node contains multiple communication gateways such as pub/sub, pull/req, and
     services.
     '''
-    def __init__(self, node_name, device_connection='tcp://127.0.0.101'):
+    def __init__(self, node_name, device_connection='tcp://127.0.0.101',
+                    node_connection_port="5558"):
         '''
         Initialize a node and connect to the master mechoscore.
 
@@ -17,11 +18,19 @@ class Node:
             node_name: The name of the node
             device_connection: The tcp IP of the mechoscore to connect to.
                                 Default is tcp://127.0.0.101
+            node_connection_port: The socket port running in mechoscore to
+                                    connect pair node with as a client. Default
+                                    5558
         Returns:
             N/A
         '''
         self._node_name = node_name
         self._device_connection = device_connection
+        self._node_connection_port = node_connection_port
+
+        #A single node context
+        self._node_context = zmq.Context()
+
         #Only a single publihser/subscriber context should be made per one node. Since
         #each node runs in a single process.
         self._pub_context = zmq.Context()
@@ -39,19 +48,28 @@ class Node:
         #Set up a zmq poller to poll subscriber messages
         self._sub_poller = zmq.Poller()
 
+        #Connect node to mechoscore
+
+
     #TODO: create pair (client/server) of node with mechoscore
-    def _connect_node_to_mechoscore():
+    def _connect_node_to_mechoscore(self):
         '''
         Connect each node instance to mechoscore. First check that mechoscore is
         started by receiving a confirmation from mechoscore that it is running.
         Also check from mechoscore that there are not any other nodes of the
-        same name.
+        same name. Each node will be a client to mechoscore which is the server
 
         Parameters:
             N/A
         Returns:
             N/A
         '''
+
+        #attempt to connect node to mechoscore
+        self._node_socket_connection = (self._device_connection + ":"
+                                        + self._node_connection_port)
+        self._node_socket = self._node_context.socket(zmq.PAIR)
+        self._node_socket.connect(self._node_socket_connection)
 
 
     def create_publisher(self, topic, pub_port="5559"):
@@ -149,7 +167,7 @@ class Node:
                             publishers in the node.
                 device_connection: The TCP IP address to connect to. Default is
                                     tcp://127.0.0.101
-                pub_port: The tcp socket to connect the socket to.
+                pub_port: The tcp socket to connect the publisher socket to.
             '''
             self._topic = topic
             self._pub_port = pub_port

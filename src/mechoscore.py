@@ -22,6 +22,7 @@ def mechoscore_main():
     pub_sub_process_handler = pub_sub_handler()
 
     #TODO: Add monitoring functionalities in main loop once nodes are implemented
+
     try:
         while(1):
             time.sleep(0.1) #do nothing
