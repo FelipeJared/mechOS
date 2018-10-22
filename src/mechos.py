@@ -10,7 +10,7 @@ class Node:
     services.
     '''
     def __init__(self, node_name, device_connection='tcp://127.0.0.101',
-                    node_connection_port="5558"):
+                node_pub_port="5557", node_sub_port="5558", _conn_mechoscore = True):
         '''
         Initialize a node and connect to the master mechoscore.
 
@@ -18,18 +18,20 @@ class Node:
             node_name: The name of the node
             device_connection: The tcp IP of the mechoscore to connect to.
                                 Default is tcp://127.0.0.101
-            node_connection_port: The socket port running in mechoscore to
-                                    connect pair node with as a client. Default
-                                    5558
+            node_pub_port: The port used by the node to publish status
+                                messages to mechoscore.
+            node_sub_port: The port used by the node to subscribe to mechoscore
+                            messages.
+            _conn_mechoscore: If true, have the node connect to mechoscore.
+                                Default True.
         Returns:
             N/A
         '''
         self._node_name = node_name
         self._device_connection = device_connection
-        self._node_connection_port = node_connection_port
-
-        #A single node context
-        self._node_context = zmq.Context()
+        self._node_pub_port = None
+        self._node_sub_port = None
+        self._conn_mechoscore = _conn_mechoscore
 
         #Only a single publihser/subscriber context should be made per one node. Since
         #each node runs in a single process.
@@ -49,7 +51,21 @@ class Node:
         self._sub_poller = zmq.Poller()
 
         #Connect node to mechoscore
+        if(self._conn_mechoscore):
+            self._node_pub_port = node_pub_port
+            self._node_sub_port = node_sub_port
+            self._connect_node_to_mechoscore()
 
+    def _mechos_messages(self, mechoscore_data):
+        '''
+        Receive messages from mechoscore and process messages based on content
+
+        Parameters:
+            mechoscore_data: The data giving an action to nodes from mechoscore
+        '''
+        data = mechoscore_data.decode().split("/")
+        if((data[1] == self._node_name) and (data[2] == "connect")):
+            self._node_connected = True
 
     #TODO: create pair (client/server) of node with mechoscore
     def _connect_node_to_mechoscore(self):
@@ -64,14 +80,23 @@ class Node:
         Returns:
             N/A
         '''
+        #Create node communication to mechoscore
+        self.node_publisher_to_mechoscore = self.create_publisher("node_connect",
+                                                self._node_pub_port)
+        self.node_subscriber_to_mechoscore = self.create_subscriber("mechoscore",
+                                    self._mechos_messages, sub_port=self._node_sub_port)
 
-        #attempt to connect node to mechoscore
-        self._node_socket_connection = (self._device_connection + ":"
-                                        + self._node_connection_port)
-        self._node_socket = self._node_context.socket(zmq.PAIR)
-        self._node_socket.connect(self._node_socket_connection)
+        #connect to mechoscore
+        self._node_connected = False
+        connection_message = ("%s/connect" % self._node_name)
 
-
+        while not self._node_connected:
+            #emit message specifying that the node is ready to connect
+            self.node_publisher_to_mechoscore.publish(connection_message)
+            #listen for message from mechoscore allowing the node to connect
+            self.spinOnce()
+        print("Node", self._node_name, "successfully connected to mechoscore.")
+        return
     def create_publisher(self, topic, pub_port="5559"):
         '''
         Create a publisher from pub_context, and connect it to the mechoscore
@@ -172,7 +197,7 @@ class Node:
             self._topic = topic
             self._pub_port = pub_port
             self._socket_connection = device_connection + (":%s" % self._pub_port)
-
+            print(self._pub_port)
             #create a publisher socket connection
             self._pub_socket = pub_context.socket(zmq.PUB)
 
@@ -193,7 +218,7 @@ class Node:
             Returns:
                 N/A
             '''
-            encoded_message = (("%s %s" % (self._topic, message)).encode("utf-8"))
+            encoded_message = (("%s/%s" % (self._topic, message)).encode("utf-8"))
             self._pub_socket.send(encoded_message)
             return
 

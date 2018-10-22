@@ -11,12 +11,57 @@ class _Node_Handler:
     about running nodes. It also makes sure nodes are unique and has the ability
     to takedown nodes.
     '''
-    def __init__(self):
+    def __init__(self, device_master_connection='tcp://127.0.0.101',
+                    master_pub_port="5557", master_sub_port="5558"):
         '''
         Initialize the node handler. Starts up server to communicate with
         nodes.
+
+        Parameters:
+            device_master_connection: The tcp IP of the mechoscore to connect to.
+                                Default is tcp://127.0.0.101
+            master_pub_port: Port to publish messages to nodes using name as
+                                the topic
+            master_sub_port: Port the subscribe to receive message from nodes
         '''
-        pass
+        self._device_master_connection = device_master_connection
+        self._master_pub_port = master_pub_port
+        self._master_sub_port = master_sub_port
+        self.connected_nodes = []
+
+        #create a mechoscore node handler node
+        self.master_node = mechos.Node("mechoscore", self._device_master_connection,
+                                    _conn_mechoscore=False)
+
+        #create a publisher for mechoscore to communicate to nodes
+        self.master_node_publisher = self.master_node.create_publisher(
+                                    "mechoscore", self._master_pub_port)
+
+        #create a subscriber for mechoscore to receive messages from nodes
+        self.master_node_subscriber = self.master_node.create_subscriber("node_connect",
+                                        self._node_messages,
+                                        sub_port=self._master_sub_port)
+
+        #pub/sub handler for communication between nodes
+        self.node_comm_handler = _Pub_Sub_Handler(self._device_master_connection,
+                                self._master_pub_port, self._master_sub_port)
+        self.node_comm_handler.start_pub_sub_handler()
+
+    def _node_messages(self, node_data):
+        '''
+        Receive information directly from nodes to get their individual status.
+
+        Paramters:
+            node_data: Data being received by the mechoscore
+        '''
+
+        data = node_data.decode().split("/")
+        #connect any nodes attempting to connect
+        if(data[2] == "connect"):
+            #connecting nodes have the form "[node_name]/connect"
+            self.connected_nodes.append(data[1])
+            self.master_node_publisher.publish(data[1] + "/connect")
+            print("Node", data[1], "connecting to mechoscore.")
 
     def listen_and_connect_available_node(self):
         '''
@@ -28,8 +73,8 @@ class _Node_Handler:
         Returns:
             N/A
         '''
-        pass
-    def _connect_node(self, ):
+
+    def _connect_available_node(self):
         '''
         Connect an already non-connected node to mechos if it is unique and
         does not already exist. Raise an error that node could not connect
@@ -41,7 +86,9 @@ class _Node_Handler:
         Returns:
             connected: True if connection successful, false otherwise
         '''
-        pass
+
+        #Check if any nodes are trying to connect/communicate
+        self.master_node.spinOnce()
     def _kill_node(self, node_name):
         '''
         Kill a node connected to mechoscore by specifying the unique
@@ -92,6 +139,15 @@ class _Pub_Sub_Handler:
         Returns:
             N/A
         '''
-        self._pub_sub_handler_devce.start()
+        print("Pub/Sub Handler routing routing publisher messages from",
+                self._pub_connection_socket, "to subscribers connected to",
+                self._sub_connection_socket)
+        self._pub_sub_handler_device.start()
 
 if __name__ == "__main__":
+    device_connection = "tcp://127.0.0.101"
+    node_handler = _Node_Handler(device_connection)
+    pub_sub_handler = _Pub_Sub_Handler(device_connection)
+    pub_sub_handler.start_pub_sub_handler()
+    while(1):
+        node_handler._connect_available_node()
