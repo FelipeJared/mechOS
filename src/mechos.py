@@ -2,6 +2,7 @@ import zmq
 from multiprocessing import Process
 import time
 
+
 class Node:
     '''
     Nodes are a objects with the ability to perform a variety of node graph
@@ -54,6 +55,12 @@ class Node:
         if(self._conn_mechoscore):
             self._node_pub_port = node_pub_port
             self._node_sub_port = node_sub_port
+
+            #Create node communication to mechoscore
+            self.node_publisher_to_mechoscore = self.create_publisher("node_connect",
+                                                    self._node_pub_port)
+            self.node_subscriber_to_mechoscore = self.create_subscriber("mechoscore",
+                                        self._mechos_messages, sub_port=self._node_sub_port)
             self._connect_node_to_mechoscore()
 
     def _mechos_messages(self, mechoscore_data):
@@ -64,10 +71,17 @@ class Node:
             mechoscore_data: The data giving an action to nodes from mechoscore
         '''
         data = mechoscore_data.decode().split("/")
-        if((data[1] == self._node_name) and (data[2] == "connect")):
-            self._node_connected = True
+        node_name, node_id = data[1], data[3]
+        if((node_name == self._node_name) and (data[2] == "connected")):
+            self._node_id = node_id
 
-    #TODO: create pair (client/server) of node with mechoscore
+            if(self._node_connected):
+                self.node_publisher_to_mechoscore.publish(self._node_name +
+                                            "/transmitting/" + node_id)
+            else:
+                self._node_connected = True
+
+
     def _connect_node_to_mechoscore(self):
         '''
         Connect each node instance to mechoscore. First check that mechoscore is
@@ -80,11 +94,7 @@ class Node:
         Returns:
             N/A
         '''
-        #Create node communication to mechoscore
-        self.node_publisher_to_mechoscore = self.create_publisher("node_connect",
-                                                self._node_pub_port)
-        self.node_subscriber_to_mechoscore = self.create_subscriber("mechoscore",
-                                    self._mechos_messages, sub_port=self._node_sub_port)
+
 
         #connect to mechoscore
         self._node_connected = False
@@ -275,3 +285,4 @@ class Node:
             '''
             message_data = self._sub_socket.recv(zmq.NOBLOCK)
             self._callback(message_data)
+            return

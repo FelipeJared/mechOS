@@ -3,6 +3,7 @@ from zmq.devices.basedevice import ProcessDevice
 import mechos
 import sys
 import time
+import uuid
 
 class _Node_Handler:
     '''
@@ -27,7 +28,8 @@ class _Node_Handler:
         self._device_master_connection = device_master_connection
         self._master_pub_port = master_pub_port
         self._master_sub_port = master_sub_port
-        self.connected_nodes = []
+        self.connected_nodes = {}
+        self.connecting_nodes_queue = {}
 
         #create a mechoscore node handler node
         self.master_node = mechos.Node("mechoscore", self._device_master_connection,
@@ -54,27 +56,24 @@ class _Node_Handler:
         Paramters:
             node_data: Data being received by the mechoscore
         '''
-
+        #each message starts with the nodes name
         data = node_data.decode().split("/")
+        node_name = data[1]
+
         #connect any nodes attempting to connect
         if(data[2] == "connect"):
             #connecting nodes have the form "[node_name]/connect"
-            self.connected_nodes.append(data[1])
-            self.master_node_publisher.publish(data[1] + "/connect")
-            print("Node", data[1], "connecting to mechoscore.")
+            self._connect_node(node_name)
 
-    def listen_and_connect_available_node(self):
-        '''
-        Listen for nodes trying to connect to mechoscore and connect them.
+        #message from nodes confirming successful connection
+        elif(data[2] == "transmitting"):
+            node_id = data[3]
+            if((node_name, node_id) in self.connecting_nodes_queue.items()):
+                self.connecting_nodes_queue.pop(node_name)
+                print("Node", node_name, node_id, "successfully connected")
 
-        Parameters:
-            N/A
 
-        Returns:
-            N/A
-        '''
-
-    def _connect_available_node(self):
+    def _connect_node(self, node_name):
         '''
         Connect an already non-connected node to mechos if it is unique and
         does not already exist. Raise an error that node could not connect
@@ -82,13 +81,34 @@ class _Node_Handler:
         confirmation to the node to begin communication.
 
         Parameters:
-            N/A
+            node_name: The name of the node trying to connect to mechoscore.
         Returns:
             connected: True if connection successful, false otherwise
         '''
+        #allow new node to connect to mechoscore, give node a unique id
+        node_id = str(uuid.uuid4())
+        self.connected_nodes[node_name] = node_id
 
-        #Check if any nodes are trying to connect/communicate
-        self.master_node.spinOnce()
+        #add node to connecting nodes queue.
+        self.connecting_nodes_queue.update({node_name : node_id})
+        self._connect_queued_nodes()
+
+    def _connect_queued_nodes(self):
+        '''
+        Send successful connection requests to queued up nodes. Keep sending
+        the connection success message until a node confirm that they have heard
+        back from master.
+
+        Parameters:
+            N/A
+        Returns:
+            N/A
+        '''
+        for node in self.connecting_nodes_queue.items():
+            node_name, node_id = node[0], node[1]
+            self.master_node_publisher.publish(node_name + "/connected/" + node_id)
+
+
     def _kill_node(self, node_name):
         '''
         Kill a node connected to mechoscore by specifying the unique
@@ -150,4 +170,4 @@ if __name__ == "__main__":
     pub_sub_handler = _Pub_Sub_Handler(device_connection)
     pub_sub_handler.start_pub_sub_handler()
     while(1):
-        node_handler._connect_available_node()
+        node_handler.master_node.spinOnce()
