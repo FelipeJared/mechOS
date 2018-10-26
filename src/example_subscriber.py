@@ -28,4 +28,4 @@ def listener():
         listener_node.spinOnce(sub)
 
 if __name__ == "__main__":
-    listener();
+    listener()

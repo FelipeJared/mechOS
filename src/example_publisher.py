@@ -14,7 +14,7 @@ def talker():
     while(1):
 
         #publish message to chatter (must be encoded as string)
-        pub.publish("publisher")
+        pub.publish("Hello World")
         time.sleep(0.01)
 
 if __name__ == "__main__":

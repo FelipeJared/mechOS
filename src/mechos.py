@@ -204,7 +204,7 @@ class Node:
             Returns:
                 N/A
             '''
-            encoded_message = (("%s %s" % (self._topic, message)).encode("utf-8"))
+            encoded_message = (("%s/%s" % (self._topic, message)).encode("utf-8"))
             self._pub_socket.send(encoded_message)
             return
 
@@ -260,4 +260,6 @@ class Node:
                 N/A
             '''
             message_data = self._sub_socket.recv(zmq.NOBLOCK)
+            #remove the topic name from the front of the message
+            message_data = message_data[len(self._topic) + 1:]
             self._callback(message_data)
