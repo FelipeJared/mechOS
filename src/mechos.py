@@ -48,7 +48,6 @@ class Node:
         #Set up a zmq poller to poll subscriber messages
         self._sub_poller = zmq.Poller()
 
-        #Connect node to mechoscore
 
 
     #TODO: create pair (client/server) of node with mechoscore
@@ -65,11 +64,7 @@ class Node:
             N/A
         '''
 
-        #attempt to connect node to mechoscore
-        self._node_socket_connection = (self._device_connection + ":"
-                                        + self._node_connection_port)
-        self._node_socket = self._node_context.socket(zmq.PAIR)
-        self._node_socket.connect(self._node_socket_connection)
+        pass
 
 
     def create_publisher(self, topic, pub_port="5559"):
@@ -124,12 +119,15 @@ class Node:
 
         return new_sub
 
-    def spinOnce(self, timeout=0.001):
+    def spinOnce(self, specific_subscriber = None, timeout=0.001):
         '''
         Attempt to retrieve a message from each subscriber and pass message to
         respective callback. Currently this is a single thread.
 
         Parameters:
+            specific_subscriber: If none, then spinOnce will listen for all
+                                subsriber messages. Else, pass a subsriber object
+                                to only look for message to that subscriber.
             timeout: Time to wait for polling messages before continuing. T
         Returns:
             N/A
@@ -137,12 +135,25 @@ class Node:
 
         socket_messages = dict(self._sub_poller.poll(timeout))
 
-        for _sub_socket in socket_messages:
-            if(_sub_socket in self._node_subs
-                and socket_messages[_sub_socket] == zmq.POLLIN):
+        #go through ALL callback for each subsriber
+        if(specific_subscriber is None):
+            for _sub_socket in socket_messages:
+                if(_sub_socket in self._node_subs
+                    and socket_messages[_sub_socket] == zmq.POLLIN):
 
-                #get single message from a single subscriber if message available
-                self._node_subs[_sub_socket]._spinOnce()
+                    #get single message from a single subscriber if message available
+                    self._node_subs[_sub_socket]._spinOnce()
+
+        #only listen for messages to specific subsriber given by specific_subscriber
+        else:
+            for _sub_socket in socket_messages:
+                if(_sub_socket in self._node_subs
+                    and socket_messages[_sub_socket] == zmq.POLLIN
+                    and specific_subscriber is self._node_subs[_sub_socket]):
+
+                    self._node_subs[_sub_socket]._spinOnce()
+                    break
+
 
         return
 

@@ -92,6 +92,18 @@ class _Pub_Sub_Handler:
         Returns:
             N/A
         '''
-        self._pub_sub_handler_devce.start()
+        self._pub_sub_handler_device.start()
 
 if __name__ == "__main__":
+    print("MechOSCore running...")
+    pub_sub_handler = _Pub_Sub_Handler()
+    pub_sub_handler.start_pub_sub_handler()
+
+    try:
+        while(1):
+            time.sleep(0.1) #do nothing
+    except KeyboardInterrupt:
+        print("Ctrl-C causes mechoscore to shutdown")
+    finally:
+        print("Closing down mechoscore")
+        sys.exit()
