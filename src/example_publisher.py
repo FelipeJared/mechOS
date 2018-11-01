@@ -5,8 +5,9 @@ def talker():
     '''
     Example of publishing continuous data to topic "chatter"
     '''
+    ip_address = "tcp://169.254.2.137"
     #initializes a node called talker
-    talker_node = mechos.Node("talker")
+    talker_node = mechos.Node("talker", ip_address)
 
     #create a publisher to publish to topic chatter
     pub = talker_node.create_publisher("chatter")

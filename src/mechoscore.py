@@ -95,8 +95,9 @@ class _Pub_Sub_Handler:
         self._pub_sub_handler_device.start()
 
 if __name__ == "__main__":
+    ip_address = "tcp://169.254.2.137"
     print("MechOSCore running...")
-    pub_sub_handler = _Pub_Sub_Handler()
+    pub_sub_handler = _Pub_Sub_Handler(ip_address, )
     pub_sub_handler.start_pub_sub_handler()
 
     try:

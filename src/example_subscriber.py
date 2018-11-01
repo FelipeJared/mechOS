@@ -17,8 +17,9 @@ def listener():
     '''
     Example of a subsriber subscribing to topic "chatter"
     '''
+    ip_address = "tcp://169.254.2.137"
     #initializes a node called listener
-    listener_node = mechos.Node("listener")
+    listener_node = mechos.Node("listener", ip_address)
 
     #create a subscriber to subscribe to topic chatter
     sub = listener_node.create_subscriber("chatter", chatter_callback)
