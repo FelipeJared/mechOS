@@ -88,6 +88,7 @@ def listener():
     while(1):
         #receive available message for subsriber sub
         listener_node.spinOnce(sub)
+        time.sleep(0.5)
 
 if __name__ == "__main__":
     listener()
@@ -110,6 +111,7 @@ Declare a MechOS node named listener. Create on subscriber to topic "chatter" an
 while(1):
         #receive available message for subsriber sub
         listener_node.spinOnce(sub)
+        time.sleep(0.5)
 ```
 To actually poll the message received to the subscriber, call the nodes spinOnce function. If the subscribers object is passed as a parameter, then only a message for that subsriber will be polled. If no parameters are passed, then all subscribers will be polled for messages.
 
