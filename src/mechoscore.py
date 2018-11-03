@@ -3,6 +3,7 @@ from zmq.devices.basedevice import ProcessDevice
 import mechos
 import sys
 import time
+import argparse
 
 class _Node_Handler:
     '''
@@ -57,18 +58,25 @@ class _Pub_Sub_Handler:
     to automatically rout publisher messages to subscribers of the same topic
     name.
     '''
-    def __init__(self, device_connection="tcp://127.0.0.101", pub_port="5559",
-                    sub_port="5560"):
+    def __init__(self, device_connection=None, pub_port=None,
+                    sub_port=None):
         '''
         Set up the pub_sub_handler socket connections
 
         Parameters:
             device_connection: The tcp IP of the mechoscore to connect to.
                                 Default is tcp://127.0.0.101
-            pub_port:The tcp socket that publishers will connect to.
-            sub_port: The tcp socket that subscribers will connect to.
+            pub_port:The tcp socket that publishers will connect to. Default 5559
+            sub_port: The tcp socket that subscribers will connect to. Default 5560
         '''
-        self._device_connection = device_connection
+        if device_connection is None:
+            device_connection = "127.0.0.101"
+        if pub_port is None:
+            pub_port = "5559"
+        if sub_port is None:
+            sub_port = "5560"
+
+        self._device_connection = "tcp://" + device_connection
         self._pub_port = pub_port
         self._sub_port = sub_port
 
@@ -92,14 +100,32 @@ class _Pub_Sub_Handler:
         Returns:
             N/A
         '''
+        print("Publisher connection socket location:", self._pub_connection_socket)
+        print("Subscriber conneciton socket location:",
+                self._sub_connection_socket)
         self._pub_sub_handler_device.start()
 
 if __name__ == "__main__":
-    print("MechOSCore running...")
-    pub_sub_handler = _Pub_Sub_Handler()
+
+    #Parse arguments to choose ip_  address and Pub/Sub ports
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--device_ip",
+            help='''IP address location to run mechoscore for
+                tcp communication. Default is tcp://127.0.0.101''',type=str)
+    parser.add_argument("--pub_port", help='''Socket port on the device_ip
+                            where all publishers will connect to for message
+                            routing.''', type=str)
+    parser.add_argument("--sub_port", help='''Socket port on the device_ip
+                            where all subscriber will connect to for message
+                            receiving.''', type=str)
+
+    args = parser.parse_args()
+
+    pub_sub_handler = _Pub_Sub_Handler(args.device_ip, args.pub_port, args.sub_port)
     pub_sub_handler.start_pub_sub_handler()
 
     try:
+        print("MechOSCore running on device", pub_sub_handler._device_connection)
         while(1):
             time.sleep(0.1) #do nothing
     except KeyboardInterrupt:
