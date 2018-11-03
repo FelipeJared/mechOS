@@ -118,7 +118,6 @@ if __name__ == "__main__":
     parser.add_argument("--sub_port", help='''Socket port on the device_ip
                             where all subscriber will connect to for message
                             receiving.''', type=str)
-
     args = parser.parse_args()
 
     pub_sub_handler = _Pub_Sub_Handler(args.device_ip, args.pub_port, args.sub_port)
