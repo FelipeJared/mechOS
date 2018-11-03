@@ -88,7 +88,7 @@ class Node:
 
         return new_pub
 
-    def create_subscriber(self, topic, callback, timeout=1, sub_port="5560"):
+    def create_subscriber(self, topic, callback, timeout=.01, sub_port="5560"):
         '''
         Create a subscriber and connect it to mechoscore pub/sub handler to
         receiver data from a publisher using the same topic name.
@@ -101,7 +101,7 @@ class Node:
                         function is where the data will be passed.
             timeout: The time in seconds the poller will hold before
                     exiting if no messages are received. Keeps the direct
-                    listening of messages from freezing up. Default 1 second
+                    listening of messages from freezing up. Default .01 second
             sub_port: The port to connect the subscriber socket to mechoscore.
                         Default 5560
         Returns:
@@ -170,7 +170,9 @@ class Node:
             '''
             Initialize a publisher by connecting to the pub/sub handler running
             in the mechoscore.By default, publishers connect to
-            tcp://localhost:5559.
+            tcp://localhost:5559. Note initialization of an object of this class
+            should only be done by the node class through the create_publisher()
+            function.
 
             Parameters:
                 topic: A well-defined topic name to publish messages to
