@@ -170,7 +170,7 @@ class Node:
             '''
             Initialize a publisher by connecting to the pub/sub handler running
             in the mechoscore.By default, publishers connect to
-            tcp://localhost:5559. Note initialization of an object of this class
+            tcp://127.0.0.101:5559. Note initialization of an object of this class
             should only be done by the node class through the create_publisher()
             function.
 
