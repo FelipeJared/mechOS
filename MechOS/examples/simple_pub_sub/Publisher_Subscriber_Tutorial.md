@@ -11,7 +11,7 @@ Subscribers subscribe to a topic receiving from an emitting publisher.
 The code below is an example of script containing a single MechOS node named "talker" with a single publisher that publishes to topic "chatter".
 
 ```python
-import mechos
+from MechOS import mechos
 import time
 
 def talker():
@@ -38,7 +38,7 @@ if __name__ == "__main__":
 
 Lets break down the code.
 ```python
-import mechos
+from MechOS import mechos
 ```
 MechOS must be imported to use its AMAZING communication abilities (HINT: How to become a Ninja).
 ```python
@@ -60,7 +60,7 @@ Continually publish the message "Hello World" to the topic "chatter". Note that 
 
 The code below is an example of a MechOS node name "listener" that has a subscriber listening to topic "chatter". 
 ```python
-import mechos
+from MechOS import mechos
 import time
 
 def chatter_callback(chatter_data):
@@ -117,12 +117,12 @@ To actually poll the message received to the subscriber, call the nodes spinOnce
 
 # 4 Running your First MechOS Program!
 
-To acutally run a MechOS program, the `mechoscore.py` script needs to be running in its own process to let nodes communicate with each other. Simply open up a terminal and execute this scripts. 
+To acutally run a MechOS program, the `MechOS.mechoscore.py` script needs to be running in its own process to let nodes communicate with each other. Simply open up a terminal and execute this scripts. 
 
 ```
 Terminal 1:
 
-python mechoscore.py
+python -m MechOS.mechoscore.py
 ```
 ```
 Terminal 2:
