@@ -1,6 +1,6 @@
 import zmq
 from zmq.devices.basedevice import ProcessDevice
-import mechos
+from MechOS import mechos
 import sys
 import time
 import argparse

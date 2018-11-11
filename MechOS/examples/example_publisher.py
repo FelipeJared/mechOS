@@ -1,4 +1,4 @@
-import mechos
+from MechOS import mechos
 import time
 
 def talker():
