@@ -183,6 +183,7 @@ class Node:
                 pub_port: The tcp socket to connect the publisher socket to.
             '''
             self._topic = topic
+            self._topic_header = self._topic + '/'
             self._pub_port = pub_port
             self._socket_connection = device_connection + (":%s" % self._pub_port)
 
@@ -201,14 +202,22 @@ class Node:
             to be routed to subscribers.
 
             Parameters:
-                message: A string of ASCII bytes
+                message: A stream of utf-8 bytes (must be type bytes)
 
             Returns:
-                N/A
+                True: Successful publish of message data
+                False: If the type of message is not of type bytes, a type TypeError
+                        is raised and a value of false is returned.
             '''
-            encoded_message = (("%s/%s" % (self._topic, message)).encode("utf-8"))
-            self._pub_socket.send(encoded_message)
-            return
+            # message must of type bytes...else raise error and return false
+            if(type(message) == type(bytes())):
+                encoded_message = self._topic_header.encode("utf-8") + message
+                self._pub_socket.send(encoded_message)
+                return True
+
+            else:
+                raise TypeError
+                return False
 
     class _Subscriber:
         '''

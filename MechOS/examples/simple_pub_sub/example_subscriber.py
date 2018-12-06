@@ -10,7 +10,7 @@ def chatter_callback(chatter_data):
         time a spinOnce is called, the data being sent from the publisher is
         inserted here.
     '''
-    print(chatter_data)
+    print(chatter_data.decode())
 
 
 def listener():

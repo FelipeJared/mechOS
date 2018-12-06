@@ -19,17 +19,6 @@ class _Node_Handler:
         '''
         pass
 
-    def listen_and_connect_available_node(self):
-        '''
-        Listen for nodes trying to connect to mechoscore and connect them.
-
-        Parameters:
-            N/A
-
-        Returns:
-            N/A
-        '''
-        pass
     def _connect_node(self, ):
         '''
         Connect an already non-connected node to mechos if it is unique and

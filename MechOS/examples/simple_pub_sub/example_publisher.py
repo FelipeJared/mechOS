@@ -13,8 +13,8 @@ def talker():
 
     while(1):
 
-        #publish message to chatter (must be encoded as string)
-        pub.publish("Hello World")
+        #publish message to chatter (must be encoded as type bytes)
+        pub.publish("Hello World".encode("utf-8"))
         time.sleep(0.01)
 
 if __name__ == "__main__":
