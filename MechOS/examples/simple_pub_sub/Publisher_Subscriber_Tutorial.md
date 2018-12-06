@@ -26,8 +26,8 @@ def talker():
 
     while(1):
 
-        #publish message to chatter (must be encoded as string)
-        pub.publish("Hello World")
+        #publish message to chatter (must be encoded as type bytes)
+        pub.publish("Hello World".encode("utf-8"))
         time.sleep(0.01)
 
 if __name__ == "__main__":
@@ -50,11 +50,11 @@ To begin any sort of communication with publishers and subscribers, a MechOS nod
 ```python
     while(1):
 
-        #publish message to chatter (must be encoded as string)
-        pub.publish("Hello World")
+        #publish message to chatter (must be encoded as type bytes)
+        pub.publish("Hello World".encode("utf-8"))
         time.sleep(0.01)
 ```
-Continually publish the message "Hello World" to the topic "chatter". Note that the data being should be in ASCII format (you are welcome C/C++ programmers).
+Continually publish the message "Hello World" to the topic "chatter". Note that the data being should be of type 'bytes' in python(you are welcome C/C++ programmers).
 
 # 3 Code-Writing a Subscriber
 
@@ -72,7 +72,7 @@ def chatter_callback(chatter_data):
         time a spinOnce is called, the data being sent from the publisher is
         inserted here.
     '''
-    print(chatter_data)
+    print(chatter_data.decode())
 
 
 def listener():
