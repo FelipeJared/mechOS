@@ -1,9 +1,11 @@
 import zmq
 from zmq.devices.basedevice import ProcessDevice
 from MechOS import mechos
+from parameter_server import Parameter_Server
 import sys
 import time
 import argparse
+
 
 class _Node_Handler:
     '''
@@ -112,12 +114,20 @@ if __name__ == "__main__":
     pub_sub_handler = _Pub_Sub_Handler(args.device_ip, args.pub_port, args.sub_port)
     pub_sub_handler.start_pub_sub_handler()
 
+    #Create the parameter server.
+    param_server = Parameter_Server(ip=args.device_ip)
+
+
     try:
         print("MechOSCore running on device", pub_sub_handler._device_connection)
         while(1):
-            time.sleep(0.1) #do nothing
+            #Run the parameter server
+            param_server.run()
+            
     except KeyboardInterrupt:
         print("Ctrl-C causes mechoscore to shutdown")
+    except Exception as e:
+        print(e)
     finally:
         print("Closing down mechoscore")
         sys.exit()

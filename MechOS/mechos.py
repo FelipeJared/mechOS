@@ -1,6 +1,7 @@
 import zmq
 from multiprocessing import Process
 import time
+import xmlrpc.client
 
 class Node:
     '''
@@ -274,3 +275,70 @@ class Node:
             #remove the topic name from the front of the message
             message_data = message_data[len(self._topic) + 1:]
             self._callback(message_data)
+
+class Parameter_Server_Client():
+    '''
+    This creates an object that is a client to the parameter server running on
+    mechoscore.
+    '''
+    def __init__(self, ip=None, port=None):
+        '''
+        Initialize Parameter server for XMLRPCServer client.
+
+        Parameters:
+            ip: The ip address to host the XMLRPCServer. Default "http://127.0.0.101"
+            port: The port to host the XMLRPCServer. Default 8000
+
+        Returns:
+            N/A
+        '''
+        if ip == None:
+            ip = "127.0.0.101"
+
+        if port == None:
+            port = 8000
+
+        self.client = xmlrpc.client.ServerProxy("http://" + ip + ":" + str(port))
+    def use_parameter_database(self, xml_file):
+        '''
+        Sets the xml file to use for the parameter server to store and retreive
+        data from.
+
+        Parameters:
+            xml_file: The xml file to save and get parameters from.
+
+        Returns:
+            true
+        '''
+        self.client.use_parameter_database(xml_file)
+
+    def set_param(self, param_path, parameter):
+        '''
+        Set a parameter in the the xml file database. If the parameter path already
+        exist, then update its content with the new parameters. If the parameter
+        path does not exist, create the parameter path and add the parameter value.
+
+        Parameter:
+            param_path: The parameter path tree to set the given parameter. Note:
+                        each level name should be spaced by a '/'.
+                        Example 'PID/roll_pid/p'
+            parameter: The string representation of the parameter you want to set.
+
+        Returns:
+            N/A
+        '''
+        self.client.set_param(param_path, parameter)
+
+    def get_param(self, param_path):
+        '''
+        Get the parameter from the given parameter_path. If the parameter does not
+        exist, through an error.
+
+        Parameters:
+            param_path: The parameter path tree to set the given parameter.
+
+        Returns:
+            N/A
+        '''
+        parameter = self.client.get_param(param_path)
+        return parameter
