@@ -1,7 +1,7 @@
 import zmq
 from zmq.devices.basedevice import ProcessDevice
 from MechOS import mechos
-from parameter_server import Parameter_Server
+from MechOS import parameter_server
 import sys
 import time
 import argparse
@@ -115,7 +115,7 @@ if __name__ == "__main__":
     pub_sub_handler.start_pub_sub_handler()
 
     #Create the parameter server.
-    param_server = Parameter_Server(ip=args.device_ip)
+    param_server = parameter_server.Parameter_Server(ip=args.device_ip)
 
 
     try:
@@ -123,7 +123,7 @@ if __name__ == "__main__":
         while(1):
             #Run the parameter server
             param_server.run()
-            
+
     except KeyboardInterrupt:
         print("Ctrl-C causes mechoscore to shutdown")
     except Exception as e:
