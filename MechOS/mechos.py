@@ -328,6 +328,7 @@ class Parameter_Server_Client():
             N/A
         '''
         self.client.set_param(param_path, parameter)
+        return True
 
     def get_param(self, param_path):
         '''

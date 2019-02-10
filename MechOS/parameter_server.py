@@ -85,12 +85,15 @@ class Parameter_Server:
                         tree.write(self.xml_file)
                         return True
 
-                    else:
-                        tree_head_previous = tree_head[0]
-                        #Set parameter
-                    tree_head[0].text = parameter
-                    tree.write(self.xml_file)
-                    return True
+                else:
+
+                    tree_head_previous = tree_head[0]
+            #Set parameter
+            tree_head[0].text = parameter
+            tree.write(self.xml_file)
+            return True
+
+
         except Exception as e:
             print("Could not set parameter path", param_path, "with parameter", paramter, ":", e)
             return False
