@@ -73,10 +73,13 @@ class Node:
         def _spinOnce(self):
             message_data, message_addr = self._sock.recvfrom(1024) #send this many bytes of data at a time
             print(message_data)
-
+'''
 if __name__ == '__main__':
      node = Node("Shafi")
      callback = None
      context = None
-     node.create_publisher("Shafi's stuff", 1345)
-     node.create_subscriber("Shafi's stuff", callback, 1, 1346)
+     publisher = node.create_publisher("Shafi's stuff", 1345)
+     publisher.publish("Hello World")
+     subscriber = node.create_subscriber("Shafi's stuff", callback, 1, 1346)
+     subscriber.spinOnce()
+'''
