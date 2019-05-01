@@ -3,7 +3,7 @@ import time
 import threading
 
 class Node:
-    def __init__(self, node_name, device_connection = 'tcp://127.0.0.101', node_connection_port = "5558"):
+    def __init__(self, node_name, device_connection = 'udp://127.0.0.101', node_connection_port = "5558"):
         self._node_name = node_name
         self._device_connection = device_connection #connection, UDP or TCP
         self._node_connection_port = node_connection_port #Port to connect to
@@ -41,7 +41,7 @@ class Node:
         print("Please work")
 
     class _Publisher:
-        def __init__(self, topic, device_connection='tcp://127.0.0.101', pub_port=5559):
+        def __init__(self, topic, device_connection='udp://127.0.0.101', pub_port=5559):
          #Doesn't do anything
             self._topic = topic #Topics, like remote control, camera, AHRS, DVL, BACKPLANE,etc
             self._host = device_connection[6::] #udp and tcp both 3 letters, thank god
@@ -58,7 +58,7 @@ class Node:
             return
 
     class _Subscriber:
-        def __init__(self, topic, device_connection='tcp://127.0.0.101', sub_port =5559):
+        def __init__(self, topic, device_connection='udp://127.0.0.101', sub_port =5559):
             self._topic = topic #just see above tbh. same as publisher
             self._host = device_connection[6::]
             self._domain =  socket.AF_INET
