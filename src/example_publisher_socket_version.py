@@ -3,11 +3,18 @@ import mechos_socket_version as msv
 import time
 
 def main():
+    count = 0
     node = msv.Node("Random topic")
     pub = node.create_publisher("Topic chatter")
-    while(True):
-        pub.publish("Hello World")
-        time.sleep(0.01)
+    start = time.time()
+    try:
+        while(True):
+            pub.publish("Hello World")
+            count = count + 1
+            time.sleep(0.01)
+    except KeyboardInterrupt:
+        end = time.time()
+        print(count/(end - start))
 
 if __name__ == '__main__':
     main()
