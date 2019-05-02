@@ -10,7 +10,7 @@ class Node:
         self._binding_domain = socket.AF_INET #IPV4
         if(device_connection[0:3] == "tcp"):
             self._data_type = socket.SOCK_STREAM #If it's TCP, socket uses SOCKSTREAM
-        else:
+        elif(device_connection[0:3] == "udp"):
             self._data_type = socket.SOCK_DGRAM #DGRAM FOR UDP. ASSUMING ONE OR THE OTHER. HAVENT HANDLED INCORRECT INPUT YET
 
         #Stuff from Pierce's code. Not too important or necessary if not using zmq
@@ -24,13 +24,13 @@ class Node:
     def _connect_node_to_mechoscore(self): #This doesn't do anything
         pass
 
-    def create_publisher(self, topic, pub_port="5559"):
+    def create_publisher(self, topic, pub_port=5559):
         #Use publisher class to create a publisher
         new_pub = Node._Publisher(topic, self._device_connection, pub_port)
         self._node_pubs[pub_port] = new_pub
         return new_pub
 
-    def create_subscriber(self, topic, sub_port="5559"):
+    def create_subscriber(self, topic, sub_port=5559):
         #Use subscriber class to create a subscriber
         new_sub = Node._Subscriber(topic, self._device_connection, sub_port)
         self._node_subs[sub_port] = new_sub
@@ -48,7 +48,7 @@ class Node:
             self._domain = socket.AF_INET #IPV4
             if(device_connection[0:3] == "tcp"):
                 self._data_type = socket.SOCK_STREAM #SOCKSTREAM FOR TCP
-            else:
+            elif(device_connection[0:3] == "udp"):
                 self._data_type = socket.SOCK_DGRAM #DGRAM FOR UDP
             self._port = pub_port
             self._sock = socket.socket(self._domain, self._data_type) #CREATE A SOCKET
@@ -64,18 +64,12 @@ class Node:
             self._domain =  socket.AF_INET
             if(device_connection[0:3] == "tcp"):
                 self._data_type = socket.SOCK_STREAM
-            else:
+            elif(device_connection[0:3] == "udp"):
                 self._data_type = socket.SOCK_DGRAM
             self._port = sub_port
             self._sock = socket.socket(self._domain, self._data_type)
             self._sock.bind((self._host, self._port)) #This part is different. Bind to specified host
 
-        def _subsccribe(self):
+        def subscribe(self):
             message_data, message_addr = self._sock.recvfrom(1024) #send this many bytes of data at a time
             print(message_data)
-
-if __name__ == '__main__':
-     node = Node("Shafi")
-     publisher = node.create_publisher("Shafi's stuff", 1345)
-     #publisher.publish("Hello World")
-     subscriber = node.create_subscriber("Shafi's stuff", 1345)
