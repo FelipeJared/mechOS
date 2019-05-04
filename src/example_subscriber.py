@@ -29,7 +29,7 @@ def listener():
             #receive available message for subsriber sub
             listener_node.spinOnce(sub)
             count = count + 1
-            time.sleep(0.5)
+            #time.sleep(0.5)
     except:
         end = time.time()
         print(count/(end - start))

@@ -3,7 +3,7 @@ import time
 import threading
 
 class Node:
-    def __init__(self, node_name, device_connection = 'udp://127.0.0.101', node_connection_port = "5558"):
+    def __init__(self, node_name, device_connection = 'udp://127.0.0.101', node_connection_port = 5558):
         self._node_name = node_name
         self._device_connection = device_connection #connection, UDP or TCP
         self._node_connection_port = node_connection_port #Port to connect to
@@ -17,12 +17,9 @@ class Node:
         self._pub_context = None
         self._sub_context = None
         self._callback_queue = None
-        #List of pubs and subs
+        #Dictionaries of pubs and subs
         self._node_pubs = {}
         self._node_subs = {}
-
-    def _connect_node_to_mechoscore(self): #This doesn't do anything
-        pass
 
     def create_publisher(self, topic, pub_port=5559):
         #Use publisher class to create a publisher
@@ -30,15 +27,36 @@ class Node:
         self._node_pubs[pub_port] = new_pub
         return new_pub
 
+    def find_pub(pub_port): #Linear search, will switch to binary
+        '''
+        Returns the topic name for the publisher at a given port number
+        '''
+        for key,value in self._node_pubs:
+            if(key == pub_port):
+                return value
+        return None
+
     def create_subscriber(self, topic, sub_port=5559):
         #Use subscriber class to create a subscriber
         new_sub = Node._Subscriber(topic, self._device_connection, sub_port)
-        self._node_subs[sub_port] = new_sub
+        if(find_pub(sub_port) == None): #No need to create a subscriber if a publisher isn't there
+            pass
+        try:
+            self._node_subs[find_pub(sub_port)].append(new_sub)
+        except KeyError:
+            self._node_subs[find_pub(sub_port)] = []
+            self._node_subs[find_pub(sub_port)].append(new_sub)
         return new_sub
 
-    def print_something(self):
-        #Ignore this
-        print("Please work")
+    def connect(port, pub_topic, sub_topic):
+        if(find_pub(port) == None):
+            pub = create_publisher(pub_topic, port)
+        sub = create_subscriber(sub_topic, port)
+        return sub
+
+    def disconnect(port):
+        del self._node_subs[find_pub(port)]
+        del self._node_pubs[port]
 
     class _Publisher:
         def __init__(self, topic, device_connection='udp://127.0.0.101', pub_port=5559):

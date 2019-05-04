@@ -18,7 +18,7 @@ def talker():
         #publish message to chatter (must be encoded as string)
             pub.publish("Hello World")
             count = count + 1
-            time.sleep(0.01)
+            #time.sleep(0.01)
     except:
         end = time.time()
         print(count/(end - start))
