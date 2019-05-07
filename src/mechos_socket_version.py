@@ -12,7 +12,7 @@ class Node:
             self._data_type = socket.SOCK_STREAM #If it's TCP, socket uses SOCKSTREAM
         elif(device_connection[0:3] == "udp"):
             self._data_type = socket.SOCK_DGRAM #DGRAM FOR UDP. ASSUMING ONE OR THE OTHER. HAVENT HANDLED INCORRECT INPUT YET
-            
+
         #Dictionaries of pubs and subs
         self._node_pubs = {}
         self._node_subs = {}
