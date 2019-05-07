@@ -32,7 +32,6 @@ class Node:
         new_sub = Node._Subscriber(topic, self._device_connection, sub_port)
         self._node_subs[sub_port] = new_sub
         return new_sub
-
     class _Publisher:
         def __init__(self, topic, device_connection='udp://127.0.0.101', pub_port=5559):
          #Doesn't do anything
