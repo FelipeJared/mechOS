@@ -12,11 +12,7 @@ class Node:
             self._data_type = socket.SOCK_STREAM #If it's TCP, socket uses SOCKSTREAM
         elif(device_connection[0:3] == "udp"):
             self._data_type = socket.SOCK_DGRAM #DGRAM FOR UDP. ASSUMING ONE OR THE OTHER. HAVENT HANDLED INCORRECT INPUT YET
-
-        #Stuff from Pierce's code. Not too important or necessary if not using zmq
-        self._pub_context = None
-        self._sub_context = None
-        self._callback_queue = None
+            
         #Dictionaries of pubs and subs
         self._node_pubs = {}
         self._node_subs = {}
@@ -32,6 +28,7 @@ class Node:
         new_sub = Node._Subscriber(topic, self._device_connection, sub_port)
         self._node_subs[sub_port] = new_sub
         return new_sub
+
     class _Publisher:
         def __init__(self, topic, device_connection='udp://127.0.0.101', pub_port=5559):
          #Doesn't do anything
