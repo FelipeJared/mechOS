@@ -1,6 +1,5 @@
 import socket
 import time
-import threading
 
 class Node:
     def __init__(self, node_name, device_connection = 'udp://127.0.0.101', node_connection_port = 5558):
@@ -14,23 +13,21 @@ class Node:
             self._data_type = socket.SOCK_DGRAM #DGRAM FOR UDP. ASSUMING ONE OR THE OTHER. HAVENT HANDLED INCORRECT INPUT YET
 
         #Dictionaries of pubs and subs
-        self._node_pubs = {}
-        self._node_subs = {}
 
-    def create_publisher(self, topic, pub_port=5559):
+    def create_publisher(self, topic, pub_port):
         #Use publisher class to create a publisher
         new_pub = Node._Publisher(topic, self._device_connection, pub_port)
         self._node_pubs[pub_port] = new_pub
         return new_pub
 
-    def create_subscriber(self, topic, sub_port=5559):
+    def create_subscriber(self, topic, sub_port):
         #Use subscriber class to create a subscriber
         new_sub = Node._Subscriber(topic, self._device_connection, sub_port)
         self._node_subs[sub_port] = new_sub
         return new_sub
 
     class _Publisher:
-        def __init__(self, topic, device_connection='udp://127.0.0.101', pub_port=5559):
+        def __init__(self, topic, device_connection='udp://127.0.0.101', pub_port = 5558):
          #Doesn't do anything
             self._topic = topic #Topics, like remote control, camera, AHRS, DVL, BACKPLANE,etc
             self._host = device_connection[6::] #udp and tcp both 3 letters, thank god
@@ -46,11 +43,14 @@ class Node:
             self._sock.sendto(message.encode(), (self._host, self._port)) #HAVE THAT SOCKET PUBLISH MESSAGES
             return
 
+        def delete(self):
+            del(self)
+
     class _Subscriber:
-        def __init__(self, topic, device_connection='udp://127.0.0.101', sub_port =5559):
+        def __init__(self, topic, device_connection='udp://127.0.0.101', sub_port = 5558):
             self._topic = topic #just see above tbh. same as publisher
             self._host = device_connection[6::]
-            self._domain =  socket.AF_INET
+            self._domain =  socket.AF_INETnode_connection_port
             if(device_connection[0:3] == "tcp"):
                 self._data_type = socket.SOCK_STREAM
             elif(device_connection[0:3] == "udp"):
@@ -62,3 +62,6 @@ class Node:
         def subscribe(self):
             message_data, message_addr = self._sock.recvfrom(1024) #send this many bytes of data at a time
             print(message_data)
+
+        def delete(self):
+            del(self)

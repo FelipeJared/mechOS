@@ -3,11 +3,10 @@ import threading
 import time
 
 # Classes
-import Networking.Publisher as PubClass
-import Networking.Subscriber as SubClass
+from NodeClass import Node
 
-class Node:
-    def __init__(self, HOST, TOPIC):
+class NetworkNode(Node):
+    def __init__(self, HOST, TOPIC, TYPE):
         '''
             PARAMETERS
 
@@ -23,32 +22,32 @@ class Node:
 
     def get_publisher(self, PORT):
         try:
-            return self._PUBLISHERS[PORT];
+            return self._PUBLISHERS[PORT]
 
         except KeyError:
-            print("Publisher Does Not Exist");
+            print("Publisher Does Not Exist")
 
     def get_subscriber(self, PORT):
         try:
-            return self._SUBSCRIBERS[PORT];
+            return self._SUBSCRIBERS[PORT]
         except KeyError:
-            print("Subscriber Does Not Exist");
+            print("Subscriber Does Not Exist")
 
     def add_publisher(self, PORT, TYPE=None, PUBRATE=None):
         self._PUBLISHERS[PORT] = PubClass.Publisher(self._HOST, PORT, self._TOPIC, PUBRATE)
         if TYPE is not None:
-            self._PUBLISHERS[PORT].setType(TYPE);
+            self._PUBLISHERS[PORT].setType(TYPE)
 
     def add_subscriber(self, PORT, TYPE=None, SUBRATE=None):
         self._SUBSCRIBERS[PORT] = SubClass.Subscriber(self._HOST, PORT, self._TOPIC, SUBRATE)
         if TYPE is not None:
-            self._SUBSCRIBERS[PORT].setType(TYPE);
+            self._SUBSCRIBERS[PORT].setType(TYPE)
 
     def delete_publisher(self, PORT):
-        del self.PUBLISHERS[PORT];
+        del self.PUBLISHERS[PORT]
 
     def delete_subscriber(self, PORT):
-        del self.SUBSCRIBER[PORT];
+        del self.SUBSCRIBER[PORT]
 
     def initializePublishers(self, LIST):
         # Where list is a List of Publishers to initialize
@@ -58,7 +57,7 @@ class Node:
             if (pub in self.PUBLISHERS.keys())
                 self.PUBLISHERS.keys(pub).start()
         '''
-        pass;
+        pass
 
     def initializePublishers(self):
         ''' This will be the initialize function for PubHandler
@@ -66,19 +65,19 @@ class Node:
 
             pub.start()
         '''
-        pass;
+        pass
     def deinitializePublishers(self):
-        ''' This will be the deinitialize function for PubHandler: 
+        ''' This will be the deinitialize function for PubHandler:
 
         for pub in Publishers
         '''
-        pass;
+        pass
 
     def run(self):
         while(True):
             for PUB in self._PUBLISHERS.values():
                 if ((PUB._timeAtLastPublish is None) or (time.time() - PUB._timeAtLastPublish >= PUB._pubRate)):
-                    PUB.publish();
+                    PUB.publish()
             for SUB in self._SUBSCRIBERS.values():
                 if ((SUB._timeAtLastSubscribe is None) or (time.time() - SUB._timeAtLastSubscribe >= SUB._subRate)):
-                    SUB.subscribe();
+                    SUB.subscribe()
