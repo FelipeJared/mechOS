@@ -8,7 +8,6 @@ from communicationUtils.Networking import Subscriber as SubClass
 
 class Node(object, metaclass=ABCMeta):
 
-    @abstractmethod
     def __init__(self, host, topic, type):
         self._host = host
         self._topic = topic
