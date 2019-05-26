@@ -14,7 +14,7 @@ class Writer:
         if message is None:
             message = self._buffer.getvalue()
         with self._buffer as f:
-            f.write(message)
+            print(f.write(message))
 
     def write_to_file(self, file, message = None):
         if message is None:
