@@ -9,21 +9,24 @@ class Reader:
             self._buffer = io.BytesIO(message)
         else:
             self._buffer = buffer
-        self.list = []
+        self._list = []
+        self._byteArray = None
 
     def read(self, size = None):
-        byteArray = self._buffer.read(size)
-        while True:
-            print(byteArray)
+        self._byteArray = self._buffer.read(size)
+        #while True:
+            #print(byteArray)
+        return self._byteArray
 
     def readAll(self):
-        while True:
-            print(self._buffer.getvalue())
+        #while True:
+            #print(self._buffer.getvalue())
+        return self._buffer.getvalue()
 
     def read_from_file(self, file):
         with open(file, "br") as self._buffer:
             for line in self._buffer:
                 self.list.append(line)
-        return self.list
+        return self._list
 
     #def seek(self, message):

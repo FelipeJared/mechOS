@@ -10,4 +10,4 @@ import io
 
 buffer = io.BytesIO(b"Hi, my name is Shafi, and I want this program to work. That would be nice")
 reader = ReadClass(b"Hello", buffer)
-reader.read(30)
+print(reader.read(32))
