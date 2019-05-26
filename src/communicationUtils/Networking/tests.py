@@ -1,13 +1,13 @@
 from Writer import Writer as WriteClass
 from Reader import Reader as ReadClass
+import io
 
 #writer = WriteClass(b"12", b"Hello World")
 #writer.write("Hey") throws errors
 #writer.write()
 #writer.write_to_file("tests.txt", b"Chelsea sucks")
 
-reader = ReadClass(b"yo")
-#reader.read(10)
-my_list = reader.read_from_file("tests.txt")
-for x in my_list:
-    print(x)
+
+buffer = io.BytesIO(b"Hi, my name is Shafi, and I want this program to work. That would be nice")
+reader = ReadClass(b"Hello", buffer)
+reader.read(30)

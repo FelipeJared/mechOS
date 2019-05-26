@@ -4,23 +4,21 @@ class Reader:
     '''
     The reader class is meant to read messages (duh).
     '''
-    def __init__(self, mem_location = None):
-        if(mem_location is None):
-            self._buffer = io.BytesIO()
+    def __init__(self, message, buffer = None):
+        if buffer is None:
+            self._buffer = io.BytesIO(message)
         else:
-            try:
-                self._buffer = io.BytesIO(mem_location)
-            except AttributeError:
-                print("Not a valid memory location")
-
+            self._buffer = buffer
         self.list = []
 
     def read(self, size = None):
+        byteArray = self._buffer.read(size)
         while True:
-            self._buffer.read(size)
+            print(byteArray)
 
     def readAll(self):
-        self._buffer.getvalue()
+        while True:
+            print(self._buffer.getvalue())
 
     def read_from_file(self, file):
         with open(file, "br") as self._buffer:

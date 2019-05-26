@@ -4,25 +4,18 @@ class Writer:
     '''
     This might come as a shock, but we use the writer class to write messages.
     '''
-    def __init__(self, mem_location = None, message = None):
-        if(mem_location is None):
-            self._buffer = io.BytesIO()
+    def __init__(self, message, buffer = None):
+        if buffer is None:
+            self._buffer = io.BytesIO(message)
         else:
-            try:
-                self._buffer = io.BytesIO(mem_location)
-            except AttributeError:
-                print("Not a valid memory location")
+            self._buffer = buffer
 
-        if message is not None:
-            self._message = message
-
-    def write(self, message = None, continuous = False):
+    def write(self, message = None):
         if message is None:
-            message = self._message
-
+            message = self._buffer.getvalue()
         with self._buffer as f:
             while True:
-                f.write(message)
+                print(f.write(message))
 
     def write_to_file(self, file, message = None):
         if message is None:
