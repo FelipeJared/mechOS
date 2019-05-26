@@ -19,5 +19,5 @@ class Writer:
     def write_to_file(self, file, message = None):
         if message is None:
             message = self._message
-        with open(file,"bw") as self._buffer:
-            self._buffer.write(message)
+        with open(file,"bw") as f:
+            f.write(message)

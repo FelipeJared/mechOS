@@ -24,8 +24,8 @@ class Reader:
         return self._buffer.getvalue()
 
     def read_from_file(self, file):
-        with open(file, "br") as self._buffer:
-            for line in self._buffer:
+        with open(file, "br") as f:
+            for line in f:
                 self.list.append(line)
         return self._list
 
