@@ -5,6 +5,7 @@ import threading
 from abc import ABCMeta, abstractmethod
 from communicationUtils.Networking import Publisher as PubClass
 from communicationUtils.Networking import Subscriber as SubClass
+from communicationUtils.Networking import IOhandler as handle
 
 class Node(object, metaclass=ABCMeta):
 
@@ -15,6 +16,7 @@ class Node(object, metaclass=ABCMeta):
         self._domain = socket.AF_INET
         self._publishers = {} #Key: port. Value: publisher
         self._subscribers = {}
+        self._reader = None
 
     def get_publisher(self, port):
         try:
@@ -43,6 +45,16 @@ class Node(object, metaclass=ABCMeta):
 
     def delete_subscriber(self, port):
         del self._subscribers[port]
+
+    def add_reader(self, buffer, message_dict = None):
+        self._reader = handle.IOhandler(buffer, message_dict)
+
+    def get_reader(self):
+        return self._reader
+
+    def delete_reader(self):
+        del self._reader
+        self._reader = None
 
     @abstractmethod
     def run(self):
