@@ -36,6 +36,7 @@ def main():
         new_draw = ImageDraw.Draw(new_pic)
         new_pic.save(("output_pics/output {}".format(num)), format='png')
         num += 1
+        del(buffer)
 
 if __name__ == '__main__':
     main()
