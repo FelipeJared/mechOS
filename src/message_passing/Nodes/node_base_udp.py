@@ -1,3 +1,13 @@
+'''
+Copyright 2019, Mohammad Shafi & Christian Gould, All rights reserved
+Authors: Christian Gould <christian.d.gould@gmail.com>
+		 Mohammad Shafi <ma.shafi99@gmail.com>
+Last Modified 06/13/2019
+Description:Creates the new structure to be used for messaging. Supports udp,
+            tcp, and local data transfer using ram. Inherits functionality from
+            threading.thread for better performance
+'''
+
 import os
 import sys
 comm_path = os.path.join("..", "..")
