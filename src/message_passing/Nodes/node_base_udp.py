@@ -1,12 +1,11 @@
-'''
-Copyright 2019, Mohammad Shafi & Christian Gould, All rights reserved
-Authors: Christian Gould <christian.d.gould@gmail.com>
-		 Mohammad Shafi <ma.shafi99@gmail.com>
-Last Modified 06/13/2019
-Description:Creates the new structure to be used for messaging. Supports udp,
-            tcp, and local data transfer using ram. Inherits functionality from
-            threading.thread for better performance
-'''
+"""Code for implementing the nodes using nodebase. Nodebase is an abstract class
+that may send data either locally via RAM or over a network using UDP or TCP
+connection. Will be used for any communication with the sub,including image
+transfer, displaying data with the GUI, or accepting inputs from Xbox controller.
+
+ ..moduleauthors:: Christian Gould <christian.d.gould@gmail.com>
+                   Mohammad Shafi <ma.shafi99@gmail.com>
+"""
 
 import os
 import sys
@@ -23,21 +22,21 @@ from abc import ABC, abstractmethod
 
 
 class node_base(ABC, threading.Thread):
-    '''
-    Abstract node_base class. The benefits of having this abstract allows for
-    numerous options for initializing and running nodes.
-    '''
+    """This abstract classs inherits from threading.Thread, allowing it to
+    receive all of its functions, like start, run, etc. Nodes are the means that
+    we use to gather, store, send, and receive data, whether locally or via the
+    network
+    """
     def __init__(self, volatile_memory, ip_route):
-        '''
-        Initializes the node. Inherits from theading.Thread along with all of
-        Thread's functions, such as start, run, etc.
-        Params:
-            volatile_memory:The RAM dictionary. We use this for local input and
-                            output. Allows reader and writer to do their jobs
-            ip_route:The ip dictionary. Contains the address, publisher socket,
-                     subscriber socket, and type of connection as information.
-                     Allows publisher and subscriber to do their jobs
-        '''
+        """A class we use to instantiate our nodes, and prepare them for local
+        or network data transfer
+
+        :param volatile_memory: The dictionary to store data for local transfer
+        :type volatile_memory: dictionary
+        :param ip_route: A dictionary that holds everything necessary for the
+                         network transfer, like sockets, ip addresses, etc.
+        :type ip_route: dictionary
+        """
         threading.Thread.__init__(self)
         ABC.__init__(self)
         print(__class__.__name__,'inherited')
@@ -49,20 +48,18 @@ class node_base(ABC, threading.Thread):
         self._writer=local.writer(volatile_memory)
 
     def _send(self,  msg, register, local=True, foreign=False):
-        '''
-        Sends your message to the address(s) provided, either foreign local or
-        both
-        Parameters:
-            msg:The bytes message that we use to write or publish, or both
-            register:The key that we want to write to if local is being used.
-                     Also gives access to all the socket and udp/tcp information
-                     if the network is being used (publishers)
-            local:boolean, states whether or not the data should be sent locally
-            foreign:boolean, states whether or not the data should be sent over
-                    the network
-        Returns:
-            N/A
-        '''
+        """Sends your message to the address(s) provided, either foreign local
+        or both
+        :param msg: the message we want to send
+        :type msg: bytes
+        :param register: the key to access the local or network dictionary
+        :type register: object
+        :param local: specifies whether we send data locally or not
+        :type local: bool
+        :param foreign: specifies whether we send the data over the network
+        :type foreign: bool
+        :raises: KeyError, socket.gaierror, AttributeError
+        """
 
         if foreign:
             self._publisher.publish(msg, register)
@@ -74,20 +71,16 @@ class node_base(ABC, threading.Thread):
                                                     #scared to delete the return
 
     def _recv(self, register, local=True):
-        '''
-            Gets your message from the addresses provided, either local or
-            foreign
-            Parameters:
-                register:The key to do local reads from. Use it to pull
-                         whatever data is stored there. If we are subsrcribing,
-                         gives us access to the IP address, sockets, etc to
-                         perform the subscribe operation
-                local:Boolean, states whether or not we receive data locally or
-                      over the network
-            Returns:
-                    The data received, whether read locally or subscribed to via
-                    the network
-        '''
+        """Receives message from the addresses provided, either local or
+        :param register: the key for either the local or foreign dictionary we
+                         attempt to subscribe to
+        :type register: object
+        :param local: specifies whether we are subscribing to data locally or
+                      via the network
+        :type local: bool
+        :returns: object. Whatever is stored at the dictionary, bytes if socket
+        :raises: KeyError, socket.gaierror, AttributeError
+        """
         if not local:
             return self._subscriber.subscribe(register)
         else:
@@ -95,23 +88,23 @@ class node_base(ABC, threading.Thread):
 
     @abstractmethod
     def run(self):
-        '''
-        This method is abstract. Allows the node to perform any function we wish
+        """This method is abstract. Allows the node to perform any function we wish
         whether that is publishes, subscriptions, or even dumb print statements
-        '''
+        """
         pass
 
 if __name__=='__main__':
     import time
-    '''
-    Examples of how to instantiate nodes, and use them. You can initialize them
-    however you wish provided you use the correct parameters, you can add any
-    function you wish for them to have, and you can pass whatever you want in
-    run. However, creating the IP dictionary has a specified method to it, as
-    publishes and subscribes will not work if that protocol is not maintained.
-    '''
     class WriteNode(node_base):
+        """Example utilization of the writer
+        """
         def __init__(self, IP, MEM):
+            """Initializes the writing node
+            :param IP: dictionary that holds information we need for network
+            :type IP: dictionary
+            :param MEM: dictionary that holds information for local transfer
+            :type MEM: dictionary
+            """
             node_base.__init__(self, MEM, IP)
             self._memory = MEM
             self._ip_route = IP
@@ -119,11 +112,23 @@ if __name__=='__main__':
             self.baud=.128
 
         def set_message(self, message):
+            """Standard setter method
+            :param message: message we want to send locally
+            :type message: object
+            """
             self.MSG=message
         def set_baudrate(self, baudrate):
+            """Also a standard setter method
+            :param baudrate: set the rate for message sending
+            :type baudrate: float
+            :raises: AttributeError
+            """
             self.baud=baudrate
 
         def run(self):
+            """Until the user quits, continuously write to the specified
+            location
+            """
             start_time = time.time()
             while True:
                 if ( (time.time() - start_time) >= self.baud ):
@@ -133,7 +138,15 @@ if __name__=='__main__':
                     time.sleep(0)
 
     class PublishNode(node_base):
+        """Example utilization of the publisher
+        """
         def __init__(self, IP, MEM):
+            """Initializes the publishing node
+            :param IP: dictionary that holds information we need for network
+            :type IP: dictionary
+            :param MEM: dictionary that holds information for local transfer
+            :type MEM: dictionary
+            """
             node_base.__init__(self, MEM, IP)
             self._memory = MEM
             self._ip_route = IP
@@ -144,11 +157,24 @@ if __name__=='__main__':
             self.baud=.128
 
         def set_message(self, message):
+            """
+            :param message: message we want to send over the network
+            :type message: bytes
+            """
             self.MSG = message
         def set_baudrate(self, baudrate):
+            """Also a standard setter method
+            :param baudrate: set the rate for message sending
+            :type baudrate: float
+            :raises: AttributeError
+            """
             self.baud = baudrate
 
         def run(self):
+            """Until the user quits, continously publish the specified message
+            via socket using UDP
+            :raises: socket.gaierror
+            """
             start_time = time.time()
             while True:
                 if((time.time() - start_time) >= self.baud):
@@ -158,13 +184,23 @@ if __name__=='__main__':
                     time.sleep(0)
 
     class ReadNode(node_base):
+        """Example utilization of the reader
+        """
         def __init__(self, IP, MEM):
+            """Initializes the reading node
+            :param IP: dictionary that holds information we need for network
+            :type IP: dictionary
+            :param MEM: dictionary that holds information for local transfer
+            :type MEM: dictionary
+            """
             node_base.__init__(self, MEM, IP)
             self._memory = MEM
             self._ip_route = IP
             self.baud=.128
 
         def run(self):
+            """Continuouly reads from local memory until the user quits
+            """
             start_time = time.time()
             while True:
                 if ( (time.time() - start_time) >= self.baud ):
@@ -174,7 +210,15 @@ if __name__=='__main__':
                     time.sleep(0)
 
     class SubscribeNode(node_base):
+        """Example utilization of the subscriber node
+        """
         def __init__(self, IP, MEM):
+            """Initializes the publishing node
+            :param IP: dictionary that holds information we need for network
+            :type IP: dictionary
+            :param MEM: dictionary that holds information for local transfer
+            :type MEM: dictionary
+            """
             node_base.__init__(self, MEM, IP)
             self._memory = MEM
             self._ip_route = IP
@@ -186,6 +230,10 @@ if __name__=='__main__':
             '''
 
         def run(self):
+            """Continously subscribes from the specified socket via UDP until
+            the user quits
+            :raises:socket.gaierror
+            """
             start_time = time.time()
             while True:
                 if ((time.time() - start_time) >= self.baud):
@@ -209,7 +257,9 @@ if __name__=='__main__':
     sub_socket1.bind((ip_address1))
     sub_socket2.bind((ip_address2))
     #Dictionary with key: ip address, value is tuple with publisher/subscriber socket
-
+    """This protocol below for the IP dictionaries that we use for publishers
+    and subscribers MUST be maintained. Has to be set like this
+    """
     IP={'Encrypted_dat':
                 {
                  'address':ip_address1,
