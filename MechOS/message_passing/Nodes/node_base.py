@@ -7,8 +7,8 @@ import time
 import threading
 import socket
 
-from message_passing.communicationUtils import local as local
-from message_passing.communicationUtils import network as network
+from MechOS.message_passing.communicationUtils import local as local
+from MechOS.message_passing.communicationUtils import network as network
 from abc import ABC, abstractmethod
 
 
