@@ -25,7 +25,7 @@ def listener():
 
     while(1):
         #receive available message for subsriber sub
-        listener_node.spinOnce(sub)
+        listener_node.whirl_once()
         time.sleep(0.5)
 
 if __name__ == "__main__":

@@ -1,133 +1,244 @@
-import zmq
-from zmq.devices.basedevice import ProcessDevice
-from MechOS import mechos
-from MechOS import parameter_server
-import sys
-import time
-import argparse
+import socket
+import threading
+from xmlrpc.server import SimpleXMLRPCServer
+from xmlrpc.server import SimpleXMLRPCRequestHandler
+import xmlrpc.client
+import os
+import signal
+import atexit
 
-
-class _Node_Handler:
+class Mechoscore:
     '''
-    This class is for MechOSCore to be able to communicate with, control, and
-    monitor individual nodes. Its primary function is to store realtime data
-    about running nodes. It also makes sure nodes are unique and has the ability
-    to takedown nodes.
+    Mechoscore containts and xmlrpc server that nodes, publishers,
+    subscribers register to in order to hop on the mechos network.
     '''
-    def __init__(self):
-        '''
-        Initialize the node handler. Starts up server to communicate with
-        nodes.
-        '''
-        pass
 
-    def _connect_node(self, ):
+    def __init__(self, ip="127.0.0.1", port=5959):
         '''
-        Connect an already non-connected node to mechos if it is unique and
-        does not already exist. Raise an error that node could not connect
-        if it is not unique. If the node is allowed to connect, it will send
-        confirmation to the node to begin communication.
+        Initialize the XMLRPCServer.
 
         Parameters:
-            N/A
+            ip: The ip address to host the XMLRPCServer. Default "http://127.0.0.101"
+            port: The port to host the XMLRPCServer. Default 8000
+
         Returns:
-            connected: True if connection successful, false otherwise
+            N/A
         '''
-        pass
-    def _kill_node(self, node_name):
+        self.xmlrpc_server = SimpleXMLRPCServer((ip,port), logRequests=False)
+
+        #Register functions that nodes will call to register themselves as well
+        #as there publishers and subscribers.
+        self.xmlrpc_server.register_function(self.register_node)
+        self.xmlrpc_server.register_function(self.unregister_node)
+        self.xmlrpc_server.register_function(self.register_publisher)
+        self.xmlrpc_server.register_function(self.register_subscriber)
+
+        self.node_information = {}
+
+        #When a new node is created, a client to that nodes xml rpc will be created.
+        self.xmlrpc_clients_to_nodes = {}
+
+        #At the exit of the mechoscore, unregister and kill all nodes if any are running.
+        atexit.register(self.unregister_all_nodes)
+
+    def register_node(self, name, pid, xmlrpc_server_ip, xmlrpc_server_port):
         '''
-        Kill a node connected to mechoscore by specifying the unique
-        nodes name.
+        Register a node with mechoscore. Check if that node is already created.
+        If it is already created, send an error message and do not let it connect.
 
         Parameters:
-            node_name: The unique name of a node connected to the network
+            node_name: The name of the node to be created.
+            pid: The process id of the node.
+
+        Returns:
+            True: If the node can be created.
+            False: If the node name already exists, then it cant be created.
         '''
-        pass
-class _Pub_Sub_Handler:
-    '''
-    Communication link for publisher/subscribers. Utilize zmq devices to
-    to automatically rout publisher messages to subscribers of the same topic
-    name.
-    '''
-    def __init__(self, device_connection=None, pub_port=None,
-                    sub_port=None):
+        if(name in self.node_information.keys()):
+            return False
+
+        #Create an xmlrpc client to the newly registered node.
+        self.xmlrpc_clients_to_nodes[name] = xmlrpc.client.ServerProxy("http://" + \
+                    xmlrpc_server_ip + ":" + \
+                    str(xmlrpc_server_port))
+
+        self.node_information[name] = {"pid":pid,
+                                                    "xmlrpc_server_ip": xmlrpc_server_ip,
+                                                    "xmlrpc_server_port":xmlrpc_server_port,
+                                                    "publishers":{},
+                                                    "subscribers":{}}
+        print("[INFO]: Registering Node %s to the mechos network" % name)
+        return True
+
+    def unregister_all_nodes(self):
         '''
-        Set up the pub_sub_handler socket connections
+        Unregister and kill all nodes in the mechos network
 
-        Parameters:
-            device_connection: The tcp IP of the mechoscore to connect to.
-                                Default is tcp://127.0.0.101
-            pub_port:The tcp socket that publishers will connect to. Default 5559
-            sub_port: The tcp socket that subscribers will connect to. Default 5560
-        '''
-        if device_connection is None:
-            device_connection = "127.0.0.101"
-        if pub_port is None:
-            pub_port = "5559"
-        if sub_port is None:
-            sub_port = "5560"
-
-        self._device_connection = "tcp://" + device_connection
-        self._pub_port = pub_port
-        self._sub_port = sub_port
-
-        self._pub_connection_socket = self._device_connection + ":" + pub_port
-        self._sub_connection_socket = self._device_connection + ":" + sub_port
-
-        #device running as an isolated process that routes pub/sub messages
-        self._pub_sub_handler_device = ProcessDevice(zmq.FORWARDER, zmq.SUB,
-                                                    zmq.PUB)
-        self._pub_sub_handler_device.bind_in(self._pub_connection_socket)
-        self._pub_sub_handler_device.bind_out(self._sub_connection_socket)
-
-        self._pub_sub_handler_device.setsockopt_in(zmq.SUBSCRIBE,
-                                                    "".encode("utf-8"))
-    def start_pub_sub_handler(self):
-        '''
-        Start the isolated process that routes publisher messages to subscribers
-        This process will be terminated once python script terminates
         Parameters:
             N/A
         Returns:
             N/A
         '''
-        print("Publisher connection socket location:", self._pub_connection_socket)
-        print("Subscriber conneciton socket location:",
-                self._sub_connection_socket)
-        self._pub_sub_handler_device.start()
+        print("[WARNING]: Unregistering all Node from mechos network")
+        node_names = list(self.node_information.keys()).copy()
+        for node_name in node_names:
+            self.unregister_node(node_name)
+
+    def unregister_node(self, name):
+        '''
+        Unregister a node with mechoscore. Before a node is killed, it should
+        call this in order to unregister it. Also kill the node.
+
+        Parameters:
+            node_name: The name of the node to unregister.
+        Returns:
+            N/A
+        '''
+
+        #Remove the information about a node.
+        node_information = self.node_information[name]
+
+
+        #Kill the publisher of the nodes
+        for publisher_id in node_information["publishers"].keys():
+
+            for node_name in self.node_information.keys():
+
+                for subscriber_id in self.node_information[node_name]["subscribers"].keys():
+
+                    self.xmlrpc_clients_to_nodes[node_name]._kill_subscriber_connection(publisher_id)
+
+            self.xmlrpc_clients_to_nodes[name]._kill_publisher(publisher_id)
+
+        for subscriber_id in node_information["subscribers"].keys():
+            self.xmlrpc_clients_to_nodes[name]._kill_subscriber(subscriber_id)
+
+        self.node_information.pop(name)
+        #Kill the process the node is running in.
+        print("[WARNING]: Unregistering and killing the process continaing Node %s" % name)
+        os.kill(node_information["pid"], signal.SIGTERM)
+
+        return(True)
+    def register_publisher(self, node_name, id, topic, ip, port, protocol):
+        '''
+        Register a publisher from a node. Check if the publisher has an allowable
+        ip and port.
+
+        Parameters:
+            node_name: The name of the node registering the publisher
+            id: The unique id of the publisher
+            topic: The topic name that the publisher will publish data to.
+            ip: The ip address that the publisher want to send on.
+            port: The port that the publisher wants to send on.
+            protocol: Either tcp or udp.
+        '''
+
+        self.node_information[node_name]["publishers"] = {id:{"topic":topic,
+                                                         "ip":ip,
+                                                         "port":port,
+                                                         "protocol":protocol}}
+
+        self.new_publisher_update_connections(node_name, id)
+        print("[INFO]: Registering publisher with topic %s on Node %s" % (topic, node_name))
+        return True
+
+
+
+    def register_subscriber(self, node_name, id, topic, ip, port, protocol):
+        '''
+        Register a subscriber from a node. This will allow the subscriber to get
+        updates on when to connect to publishers and the ports they need to connect to.
+
+        Parameters:
+            node_name: The name of the node registering the subscriber.
+            topic: The topic name that the subscriber will subscribe to get data from.
+            protocol: Either udp or tcp.
+        '''
+        self.node_information[node_name]["subscribers"] = {id:{"topic":topic,
+                                                                "ip":ip,
+                                                                "port":port,
+                                                                "protocol":protocol}}
+        print("[INFO]: Registering subscriber with topic %s on Node %s" % (topic, node_name))
+        self.new_subscriber_update_connections(node_name, id)
+        return(True)
+
+
+    def new_subscriber_update_connections(self, node_name, subscriber_id):
+        '''
+        If a new subscriber of publisher comes onto the network, connect it with its counter
+        parts.
+
+        Parameters:
+            N/A
+        Returns:
+            N/A
+        '''
+        xmlrpc_client_to_subscriber_node = self.xmlrpc_clients_to_nodes[node_name]
+        subscriber_topic = self.node_information[node_name]["subscribers"][subscriber_id]["topic"]
+        subscriber_protocol =  self.node_information[node_name]["subscribers"][subscriber_id]["protocol"]
+        subscriber_ip = self.node_information[node_name]["subscribers"][subscriber_id]["ip"]
+        subscriber_port = self.node_information[node_name]["subscribers"][subscriber_id]["port"]
+        #Iterate through each nodes publishers, and connect it to the repectable topics
+        for nodes in self.node_information.keys():
+
+            for publisher_id in self.node_information[nodes]["publishers"].keys():
+
+                #publisher topics of current node.
+                publisher_topic = self.node_information[nodes]["publishers"][publisher_id]["topic"]
+                publisher_ip = self.node_information[nodes]["publishers"][publisher_id]["ip"]
+                publisher_port = self.node_information[nodes]["publishers"][publisher_id]["port"]
+                publisher_protocol = self.node_information[nodes]["publishers"][publisher_id]["protocol"]
+
+                xmlrpc_client_to_publisher_node = self.xmlrpc_clients_to_nodes[nodes]
+
+                if(publisher_topic == subscriber_topic and publisher_protocol == subscriber_protocol):
+                    xmlrpc_client_to_subscriber_node._update_subscriber(subscriber_id, publisher_id, publisher_ip, publisher_port)
+                    xmlrpc_client_to_publisher_node._update_publisher(publisher_id, subscriber_id, subscriber_ip, subscriber_port)
+
+    def new_publisher_update_connections(self, node_name, publisher_id):
+        '''
+        If a new publisher comes onto the network, tell the subscriber of the topic
+        to connect.
+
+        Parameters:
+            node_name:
+            publisher_id: The unique publisher id.
+        Returns:
+            N/A
+        '''
+        xmlrpc_client_to_publisher_node = self.xmlrpc_clients_to_nodes[node_name]
+        publisher_topic = self.node_information[node_name]["publishers"][publisher_id]["topic"]
+        publisher_ip = self.node_information[node_name]["publishers"][publisher_id]["ip"]
+        publisher_port = self.node_information[node_name]["publishers"][publisher_id]["port"]
+        publisher_protocol = self.node_information[node_name]["publishers"][publisher_id]["protocol"]
+
+        for nodes in self.node_information.keys():
+
+            for subscriber_id in self.node_information[nodes]["subscribers"].keys():
+
+                #publisher topics of current node.
+                subscriber_topic = self.node_information[nodes]["subscribers"][subscriber_id]["topic"]
+                subscriber_protocol = self.node_information[nodes]["subscribers"][subscriber_id]["protocol"]
+                subscriber_ip = self.node_information[nodes]["subscribers"][subscriber_id]["ip"]
+                subscriber_port = self.node_information[nodes]["subscribers"][subscriber_id]["port"]
+
+                xmlrpc_client_to_subscriber_node = self.xmlrpc_clients_to_nodes[nodes]
+
+                if(publisher_topic == subscriber_topic and publisher_protocol == subscriber_protocol):
+                    xmlrpc_client_to_subscriber_node._update_subscriber(subscriber_id, publisher_id, publisher_ip, publisher_port)
+                    xmlrpc_client_to_publisher_node._update_publisher(publisher_id, subscriber_id, subscriber_ip, subscriber_port)
+
+    def run(self):
+        '''
+        Run the mechoscore server.
+
+        Parameters:
+            N/A
+        Returns:
+            N/A
+        '''
+        self.xmlrpc_server.serve_forever()
 
 if __name__ == "__main__":
-
-    #Parse arguments to choose ip_  address and Pub/Sub ports
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--device_ip",
-            help='''IP address location to run mechoscore for
-                tcp communication. Default is tcp://127.0.0.101''',type=str)
-    parser.add_argument("--pub_port", help='''Socket port on the device_ip
-                            where all publishers will connect to for message
-                            routing.''', type=str)
-    parser.add_argument("--sub_port", help='''Socket port on the device_ip
-                            where all subscriber will connect to for message
-                            receiving.''', type=str)
-    args = parser.parse_args()
-
-    pub_sub_handler = _Pub_Sub_Handler(args.device_ip, args.pub_port, args.sub_port)
-    pub_sub_handler.start_pub_sub_handler()
-
-    #Create the parameter server.
-    param_server = parameter_server.Parameter_Server(ip=args.device_ip)
-
-
-    try:
-        print("MechOSCore running on device", pub_sub_handler._device_connection)
-        while(1):
-            #Run the parameter server
-            param_server.run()
-
-    except KeyboardInterrupt:
-        print("Ctrl-C causes mechoscore to shutdown")
-    except Exception as e:
-        print(e)
-    finally:
-        print("Closing down mechoscore")
-        sys.exit()
+    mechoscore_server = Mechoscore()
+    mechoscore_server.run()
