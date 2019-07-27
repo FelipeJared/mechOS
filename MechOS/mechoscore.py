@@ -7,7 +7,7 @@ import os
 import signal
 import atexit
 import threading
-import parameter_server
+from MechOS import parameter_server
 import argparse
 
 class Mechoscore:
