@@ -20,7 +20,7 @@ class Parameter_Server:
             N/A
         '''
         if ip == None:
-            ip = "127.0.0.101"
+            ip = "127.0.0.1"
 
         if port == None:
             port = 8000

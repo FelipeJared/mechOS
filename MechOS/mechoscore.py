@@ -6,6 +6,9 @@ import xmlrpc.client
 import os
 import signal
 import atexit
+import threading
+import parameter_server
+import argparse
 
 class Mechoscore:
     '''
@@ -13,18 +16,23 @@ class Mechoscore:
     subscribers register to in order to hop on the mechos network.
     '''
 
-    def __init__(self, ip="127.0.0.1", port=5959):
+    def __init__(self, ip="127.0.0.1", core_port=5959, param_server_port=8000):
         '''
         Initialize the XMLRPCServer.
 
         Parameters:
             ip: The ip address to host the XMLRPCServer. Default "http://127.0.0.101"
-            port: The port to host the XMLRPCServer. Default 8000
+            core_port: The port to host the mechoscore XMLRPCServer. Default 5959
+            param_server_port: The port to host the parameter server on. Default 8000
 
         Returns:
             N/A
         '''
-        self.xmlrpc_server = SimpleXMLRPCServer((ip,port), logRequests=False)
+        self.xmlrpc_server = SimpleXMLRPCServer((ip,core_port), logRequests=False)
+
+        self.ip = ip
+        self.core_port = core_port
+        self.param_server_port = param_server_port
 
         #Register functions that nodes will call to register themselves as well
         #as there publishers and subscribers.
@@ -37,6 +45,10 @@ class Mechoscore:
 
         #When a new node is created, a client to that nodes xml rpc will be created.
         self.xmlrpc_clients_to_nodes = {}
+
+        #Initialize the parameter server
+        self.param_server = parameter_server.Parameter_Server(ip=self.ip, port=self.param_server_port)
+
 
         #At the exit of the mechoscore, unregister and kill all nodes if any are running.
         atexit.register(self.unregister_all_nodes)
@@ -111,7 +123,7 @@ class Mechoscore:
         for subscriber_id in node_information["subscribers"].keys():
 
             for node_name in self.node_information.keys():
-                
+
                 self.xmlrpc_clients_to_nodes[node_name]._kill_publisher_connection(subscriber_id)
 
             self.xmlrpc_clients_to_nodes[name]._kill_subscriber(subscriber_id)
@@ -240,8 +252,30 @@ class Mechoscore:
         Returns:
             N/A
         '''
+        self.param_server_thread = threading.Thread(target=self.param_server.run, daemon=True)
+
+        #Start the xmlrpc server of mechoscore and the parameter server
+        self.param_server_thread.start()
+
         self.xmlrpc_server.serve_forever()
 
 if __name__ == "__main__":
-    mechoscore_server = Mechoscore()
+
+     #Parse arguments to choose ip_  address and Pub/Sub ports
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--ip", default='127.0.0.1',
+            help='''IP address location to run mechoscore for
+                  nodes to connect to and the parameter server.
+                  Default is 127.0.0.1''',type=str)
+
+    parser.add_argument("--core_port", default=5959,
+            help='''The port that mechoscores xmlrpc server is for node registration.''', type=int)
+
+    parser.add_argument("--param_server_port", default=8000,
+            help='''The port that the parameter server is running on. Default 8000''', type=int)
+
+    args= parser.parse_args()
+
+
+    mechoscore_server = Mechoscore(ip=args.ip, core_port=args.core_port, param_server_port=args.param_server_port)
     mechoscore_server.run()

@@ -313,7 +313,7 @@ class Node:
 
         return True
 
-    def create_publisher(self, topic, ip='127.0.0.1', protocol="tcp", max_buffer_size=10, max_send_byte_size=1024):
+    def create_publisher(self, topic, ip=self.ip, protocol="tcp", max_buffer_size=10, max_send_byte_size=1024):
         '''
         Create either a tcp or udp publisher server.
 
@@ -343,7 +343,7 @@ class Node:
 
         return publisher
 
-    def create_subscriber(self, topic, callback, ip='127.0.0.1', protocol="tcp", max_buffer_size=10, max_recv_byte_size=1024):
+    def create_subscriber(self, topic, callback, ip=self.ip, protocol="tcp", max_buffer_size=10, max_recv_byte_size=1024):
         '''
         Create either a tcp or udp subscriber that will connect to publishers
         when instructed to by mechoscore.
@@ -364,7 +364,7 @@ class Node:
                                         subscriber.topic, subscriber.ip, subscriber.port, subscriber.protocol)
 
 
-    def whirl_once(self):
+    def spin_once(self):
         '''
         Check for messages for each subscriber of the node.
 
@@ -590,3 +590,63 @@ class Node:
                         continue
                     except:
                         continue
+
+class Parameter_Server_Client():
+    '''
+    This creates an object that is a client to the parameter server running on
+    mechoscore.
+    '''
+    def __init__(self, ip=None, port=None):
+        '''
+        Initialize Parameter server for XMLRPCServer client.
+        Parameters:
+            ip: The ip address to host the XMLRPCServer. Default "http://127.0.0.101"
+            port: The port to host the XMLRPCServer. Default 8000
+        Returns:
+            N/A
+        '''
+        if ip == None:
+            ip = "127.0.0.1"
+
+        if port == None:
+            port = 8000
+
+        self.client = xmlrpc.client.ServerProxy("http://" + ip + ":" + str(port))
+    def use_parameter_database(self, xml_file):
+        '''
+        Sets the xml file to use for the parameter server to store and retreive
+        data from.
+        Parameters:
+            xml_file: The xml file to save and get parameters from.
+        Returns:
+            true
+        '''
+        self.client.use_parameter_database(xml_file)
+
+    def set_param(self, param_path, parameter):
+        '''
+        Set a parameter in the the xml file database. If the parameter path already
+        exist, then update its content with the new parameters. If the parameter
+        path does not exist, create the parameter path and add the parameter value.
+        Parameter:
+            param_path: The parameter path tree to set the given parameter. Note:
+                        each level name should be spaced by a '/'.
+                        Example 'PID/roll_pid/p'
+            parameter: The string representation of the parameter you want to set.
+        Returns:
+            N/A
+        '''
+        self.client.set_param(param_path, parameter)
+        return True
+
+    def get_param(self, param_path):
+        '''
+        Get the parameter from the given parameter_path. If the parameter does not
+        exist, through an error.
+        Parameters:
+            param_path: The parameter path tree to set the given parameter.
+        Returns:
+            N/A
+        '''
+        parameter = self.client.get_param(param_path)
+        return parameter
