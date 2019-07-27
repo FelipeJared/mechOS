@@ -8,6 +8,9 @@ import os
 import atexit
 import time
 import signal
+import io
+import math
+import sys
 
 
 class Node:
@@ -128,7 +131,7 @@ class Node:
         Returns:
             True
         '''
-        
+
         os.kill(self.pid, signal.SIGTERM)
         return(True)
 
@@ -175,7 +178,7 @@ class Node:
         conn.setblocking(False)
 
         #Maximum send buffer.
-        conn.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, publisher.max_send_byte_size*publisher.max_buffer_size)
+        conn.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, publisher.queue_size*publisher.message_format.size)
         conn.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
         publisher.subscriber_tcp_connections[subscriber_id] = [conn, addr]
@@ -326,13 +329,16 @@ class Node:
 
         return True
 
-    def create_publisher(self, topic, ip=None, protocol="tcp", max_buffer_size=10, max_send_byte_size=1024):
+    def create_publisher(self, topic, message_format, queue_size=1000, ip=None, protocol="tcp"):
         '''
         Create either a tcp or udp publisher server.
 
         Parameters:
             topic: A well-defined topic name for subscriber to connect to the publisher
                     of the same name
+            message_format: A message type format object that contains a pack and unpack
+                            method for packing and unpacking bytes. It also must have the
+                            byte size of the message.
             ip: The ip address that you want to connect publishers server to be created on.
             port: The port address that you want to connect the publishers server to.
             protocol: Either tcp or udp protocol. Note only one topic can have one protocol.
@@ -343,7 +349,7 @@ class Node:
 
         port = self.get_free_port(ip)
         #port = 8787
-        publisher = Node.Publisher(topic, ip, port, protocol, max_buffer_size, max_send_byte_size)
+        publisher = Node.Publisher(topic, message_format, queue_size, ip, port, protocol)
 
         #Add the publisher object to the node dictionary of publishers.
         self.node_publishers[publisher.id] = publisher
@@ -360,7 +366,7 @@ class Node:
 
         return publisher
 
-    def create_subscriber(self, topic, callback, ip=None, protocol="tcp", max_buffer_size=10, max_recv_byte_size=1024):
+    def create_subscriber(self, topic, message_format, callback, queue_size=1000, ip=None, protocol="tcp"):
         '''
         Create either a tcp or udp subscriber that will connect to publishers
         when instructed to by mechoscore.
@@ -376,7 +382,7 @@ class Node:
             ip=self.ip
 
         port = self.get_free_port(ip)
-        subscriber = Node.Subscriber(topic, callback, ip, port, protocol, max_buffer_size, max_recv_byte_size)
+        subscriber = Node.Subscriber(topic, message_format, callback, queue_size, ip, port, protocol)
 
         #Add the subscriber to the node subscriber list.
         self.node_subscribers[subscriber.id] = subscriber
@@ -408,7 +414,7 @@ class Node:
         mechoscore through the mechoscore XMLRPC server and will be connected to subscriber
         throught the Node XMLRPC server.
         '''
-        def __init__(self, topic, ip, port, protocol, max_buffer_size, max_send_byte_size):
+        def __init__(self, topic, message_format, queue_size, ip, port, protocol):
             '''
             Create either a tcp or udp publisher server.
 
@@ -420,12 +426,12 @@ class Node:
                 protocol: Either tcp or udp protocol. Note only one topic can have one protocol.
             '''
             self.topic = topic
+            self.queue_size = queue_size
             self.ip = ip
             self.port = port
             self.protocol = protocol
 
-            self.max_buffer_size = max_buffer_size
-            self.max_send_byte_size = max_send_byte_size
+            self.message_format = message_format
 
             #generate a unique id
             self.id = str(uuid.uuid1().hex)
@@ -477,12 +483,14 @@ class Node:
             Returns
                 N/A
             '''
+
+            message_encoded = self.message_format._pack(message)
             if(self.protocol == 'tcp'):
 
                 for subscriber_id in self.subscriber_tcp_connections.keys():
                     try:
                         sub_socket = (self.subscriber_tcp_connections[subscriber_id])[0]
-                        sub_socket.send(message)
+                        sub_socket.send(message_encoded)
                     except socket.error as e:
                         print("[ERROR]: A socket has appeared to disconnect")
                         continue
@@ -492,7 +500,8 @@ class Node:
                 for subscriber_id in self.subscriber_udp_connections.keys():
                     try:
                         [subscriber_ip, subscriber_port] = self.subscriber_udp_connections[subscriber_id]
-                        self.server_socket.sendto(message, (subscriber_ip, subscriber_port))
+
+                        self.server_socket.sendto(message_encoded, (subscriber_ip, subscriber_port))
 
                     except socket.error as e:
                         continue
@@ -505,7 +514,7 @@ class Node:
         a topic name. The subscriber will be registered with mechoscore through the mechoscore XMLRPC server and will be connected to subscriber
         throught the Node XMLRPC server.
         '''
-        def __init__(self, topic, callback, ip, port, protocol, max_buffer_size, max_recv_byte_size):
+        def __init__(self, topic, message_format, callback, queue_size, ip, port, protocol):
             '''
             Create either a tcp or udp subscriber to the following topci
 
@@ -513,6 +522,7 @@ class Node:
                 topic: The name of the topic to subscribe to for data.
                 protocol: the protocol that the publishers of the given topic will
                         publish on.
+
                 callback: A function with one parameter in which the subscriber will pass the
                             data it receives to.
             '''
@@ -523,9 +533,9 @@ class Node:
             self.topic = topic
             self.protocol = protocol
             self.callback = callback
+            self.queue_size = queue_size
 
-            self.max_buffer_size = max_buffer_size
-            self.max_recv_byte_size = max_recv_byte_size
+            self.message_format = message_format
 
             #generate a unique id
             self.id = str(uuid.uuid1().hex)
@@ -585,28 +595,36 @@ class Node:
             if(self.protocol == "tcp"):
 
                 for publisher_id in self.publisher_tcp_connections.keys():
-
                     try:
-                        message = self.publisher_tcp_connections[publisher_id].recv(self.max_recv_byte_size)
 
-                        if not message:
+
+                        message_encoded = self.publisher_tcp_connections[publisher_id].recv(self.message_format.size)
+
+                        if(not message_encoded):
                             continue
 
+                        message = self.message_format._unpack(message_encoded)
                         self.callback(message)
+
 
                     except socket.error as e:
                         continue
+
             elif(self.protocol == "udp"):
 
 
                 for publisher_id in self.publisher_udp_connections.keys():
+
                     try:
 
-                        message, _ = self.publisher_udp_connections[publisher_id][0].recvfrom(self.max_buffer_size)
+                        message_encoded, _ = self.publisher_udp_connections[publisher_id][0].recvfrom(self.message_format.size)
 
-                        if not message:
+                        if(not message_encoded):
                             continue
+
+                        message = self.message_format._unpack(message_encoded)
                         self.callback(message)
+
                     except socket.error as e:
                         continue
                     except:

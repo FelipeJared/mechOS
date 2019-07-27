@@ -1,5 +1,6 @@
 from MechOS import mechos
 import time
+from MechOS.simple_messages.float_array import Float_Array
 
 def chatter_callback(chatter_data):
     '''
@@ -10,7 +11,7 @@ def chatter_callback(chatter_data):
         time a spinOnce is called, the data being sent from the publisher is
         inserted here.
     '''
-    print(chatter_data.decode())
+    print(chatter_data)
 
 
 def listener():
@@ -21,7 +22,8 @@ def listener():
     listener_node = mechos.Node("listener")
 
     #create a subscriber to subscribe to topic chatter
-    sub = listener_node.create_subscriber("chatter", chatter_callback)
+    sub = listener_node.create_subscriber("chatter", Float_Array(4), chatter_callback, protocol="udp")
+
 
     while(1):
 
