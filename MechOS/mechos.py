@@ -97,6 +97,7 @@ class Node:
         self.xmlrpc_server.register_function(self._kill_subscriber)
 
         self.xmlrpc_server.register_function(self._kill_subscriber_connection)
+        self.xmlrpc_server.register_function(self._kill_publisher_connection)
 
         #Run the nodes xmlrpc server as a thread.
         self.xmlrpc_server_thread = threading.Thread(target=self.xmlrpc_server.serve_forever, daemon=True)
@@ -163,7 +164,7 @@ class Node:
         conn.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, publisher.max_send_byte_size*publisher.max_buffer_size)
         conn.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-        publisher.subscriber_tcp_connections["subscriber_id"] = [conn, addr]
+        publisher.subscriber_tcp_connections[subscriber_id] = [conn, addr]
 
 
     def _update_subscriber(self, subscriber_id, publisher_id, publisher_ip, publisher_port):
@@ -293,6 +294,22 @@ class Node:
                 (subscriber.publisher_udp_connections[publisher_id])[0].close()
                 subscriber.publisher_udp_connections.pop(publisher_id)
 
+
+        return True
+
+    def _kill_publisher_connection(self, subscriber_id):
+        '''
+        '''
+        for publisher_id in self.node_publishers.keys():
+
+            publisher = self.node_publishers[publisher_id]
+
+            #if publisher is tcp
+            print(subscriber_id, publisher.subscriber_tcp_connections.keys())
+            if(subscriber_id in publisher.subscriber_tcp_connections.keys()):
+
+                publisher.subscriber_tcp_connections[subscriber_id][0].close()
+                publisher.subscriber_tcp_connections.pop(subscriber_id)
 
         return True
 
@@ -446,6 +463,7 @@ class Node:
                         sub_socket = (self.subscriber_tcp_connections[subscriber_id])[0]
                         sub_socket.send(message)
                     except socket.error as e:
+                        print("[ERROR]: A socket has appeared to disconnect")
                         continue
                     except:
                         continue
@@ -548,7 +566,7 @@ class Node:
                 for publisher_id in self.publisher_tcp_connections.keys():
 
                     try:
-                        message = self.publisher_tcp_connections[publisher_id].recv(self.max_buffer_size)
+                        message = self.publisher_tcp_connections[publisher_id].recv(self.max_recv_byte_size)
 
                         if not message:
                             continue

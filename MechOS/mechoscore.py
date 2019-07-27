@@ -104,13 +104,16 @@ class Mechoscore:
 
             for node_name in self.node_information.keys():
 
-                for subscriber_id in self.node_information[node_name]["subscribers"].keys():
-
-                    self.xmlrpc_clients_to_nodes[node_name]._kill_subscriber_connection(publisher_id)
+                self.xmlrpc_clients_to_nodes[node_name]._kill_subscriber_connection(publisher_id)
 
             self.xmlrpc_clients_to_nodes[name]._kill_publisher(publisher_id)
 
         for subscriber_id in node_information["subscribers"].keys():
+
+            for node_name in self.node_information.keys():
+                
+                self.xmlrpc_clients_to_nodes[node_name]._kill_publisher_connection(subscriber_id)
+
             self.xmlrpc_clients_to_nodes[name]._kill_subscriber(subscriber_id)
 
         self.node_information.pop(name)
