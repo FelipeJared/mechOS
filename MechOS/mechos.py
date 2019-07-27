@@ -135,7 +135,6 @@ class Node:
         if(publisher.protocol == "tcp"):
             #allow the publish to accept tcp connection.
             self._publisher_accept_connection(publisher_id, subscriber_id)
-            print("[INFO]: TCP Connection made")
 
         #Udp publishers don't need to accept a connection to send
         elif(publisher.protocol == "udp"):
@@ -305,7 +304,6 @@ class Node:
             publisher = self.node_publishers[publisher_id]
 
             #if publisher is tcp
-            print(subscriber_id, publisher.subscriber_tcp_connections.keys())
             if(subscriber_id in publisher.subscriber_tcp_connections.keys()):
 
                 publisher.subscriber_tcp_connections[subscriber_id][0].close()
@@ -313,7 +311,7 @@ class Node:
 
         return True
 
-    def create_publisher(self, topic, ip=self.ip, protocol="tcp", max_buffer_size=10, max_send_byte_size=1024):
+    def create_publisher(self, topic, ip=None, protocol="tcp", max_buffer_size=10, max_send_byte_size=1024):
         '''
         Create either a tcp or udp publisher server.
 
@@ -324,6 +322,10 @@ class Node:
             port: The port address that you want to connect the publishers server to.
             protocol: Either tcp or udp protocol. Note only one topic can have one protocol.
         '''
+        if ip == None:
+
+            ip=self.ip
+
         port = self.get_free_port(ip)
         #port = 8787
         publisher = Node.Publisher(topic, ip, port, protocol, max_buffer_size, max_send_byte_size)
@@ -343,7 +345,7 @@ class Node:
 
         return publisher
 
-    def create_subscriber(self, topic, callback, ip=self.ip, protocol="tcp", max_buffer_size=10, max_recv_byte_size=1024):
+    def create_subscriber(self, topic, callback, ip=None, protocol="tcp", max_buffer_size=10, max_recv_byte_size=1024):
         '''
         Create either a tcp or udp subscriber that will connect to publishers
         when instructed to by mechoscore.
@@ -354,6 +356,10 @@ class Node:
                         data it receives to.
             protocol: Either tcp or udp protocol
         '''
+        if ip == None:
+
+            ip=self.ip
+
         port = self.get_free_port(ip)
         subscriber = Node.Subscriber(topic, callback, ip, port, protocol, max_buffer_size, max_recv_byte_size)
 
@@ -424,7 +430,7 @@ class Node:
             Returns:
                 N/A
             '''
-            print("[INFO]: Creating TCP server for publisher on topic %s" % self.topic)
+
 
             self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)

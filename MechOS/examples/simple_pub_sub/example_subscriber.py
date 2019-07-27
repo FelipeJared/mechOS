@@ -24,9 +24,10 @@ def listener():
     sub = listener_node.create_subscriber("chatter", chatter_callback)
 
     while(1):
-        #receive available message for subsriber sub
-        listener_node.whirl_once()
-        time.sleep(0.5)
+
+        listener_node.spin_once()
+        time.sleep(0.01)
+
 
 if __name__ == "__main__":
     listener()

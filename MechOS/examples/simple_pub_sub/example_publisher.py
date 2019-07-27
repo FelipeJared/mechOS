@@ -8,7 +8,7 @@ def talker():
     #initializes a node called talker
     talker_node = mechos.Node("talker")
 
-    #create a publisher to publish to topic chatter
+    #create a tcp publisher to publish to topic chatter
     pub = talker_node.create_publisher("chatter")
 
     while(1):
