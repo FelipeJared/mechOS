@@ -7,6 +7,7 @@ import uuid
 import os
 import atexit
 import time
+import signal
 
 
 class Node:
@@ -92,6 +93,7 @@ class Node:
         #connection.
         self.xmlrpc_server.register_function(self._update_publisher)
         self.xmlrpc_server.register_function(self._update_subscriber)
+        self.xmlrpc_server.register_function(self._kill_node)
 
         self.xmlrpc_server.register_function(self._kill_publisher)
         self.xmlrpc_server.register_function(self._kill_subscriber)
@@ -116,6 +118,19 @@ class Node:
         self.xmlrpc_client = xmlrpc.client.ServerProxy("http://" + \
                     self.mechoscore_xmlrpc_server_ip + ":" + \
                     str(self.mechoscore_xmlrpc_server_port))
+
+    def _kill_node(self):
+        '''
+        Kill the process (pid) that this node is running on.
+
+        Parameters:
+            None
+        Returns:
+            True
+        '''
+        
+        os.kill(self.pid, signal.SIGTERM)
+        return(True)
 
     def _update_publisher(self, publisher_id, subscriber_id, subscriber_ip, subscriber_port):
         '''

@@ -128,10 +128,11 @@ class Mechoscore:
 
             self.xmlrpc_clients_to_nodes[name]._kill_subscriber(subscriber_id)
 
-        self.node_information.pop(name)
-        #Kill the process the node is running in.
         print("[WARNING]: Unregistering and killing the process continaing Node %s" % name)
-        os.kill(node_information["pid"], signal.SIGTERM)
+        self.node_information.pop(name)
+        self.xmlrpc_clients_to_nodes[name]._kill_node()
+
+        
 
         return(True)
     def register_publisher(self, node_name, id, topic, ip, port, protocol):
