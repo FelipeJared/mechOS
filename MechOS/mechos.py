@@ -179,7 +179,6 @@ class Node:
         publisher = self.node_publishers[publisher_id]
 
         conn, addr = publisher.server_socket.accept()
-        print("Connection Received", addr)
         conn.setblocking(False)
 
         #Maximum send buffer.
@@ -494,7 +493,8 @@ class Node:
             message_encoded = self.message_format._pack(message)
             if(self.protocol == 'tcp'):
 
-                for subscriber_id in self.subscriber_tcp_connections.keys():
+                subscriber_connections = list(self.subscriber_tcp_connections.keys()).copy()
+                for subscriber_id in subscriber_connections:
                     try:
                         sub_socket = (self.subscriber_tcp_connections[subscriber_id])[0]
                         sub_socket.send(message_encoded)
@@ -504,7 +504,9 @@ class Node:
                     except:
                         continue
             elif(self.protocol == 'udp'):
-                for subscriber_id in self.subscriber_udp_connections.keys():
+                
+                subscriber_connections = list(self.subscriber_udp_connections.keys()).copy()
+                for subscriber_id in subscriber_connections:
                     try:
                         [subscriber_ip, subscriber_port] = self.subscriber_udp_connections[subscriber_id]
 

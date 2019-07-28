@@ -130,7 +130,7 @@ class Mechoscore:
 
         print("[WARNING]: Unregistering and killing the process continaing Node %s" % name)
         self.node_information.pop(name)
-        self.xmlrpc_clients_to_nodes[name]._kill_node()
+        #self.xmlrpc_clients_to_nodes[name]._kill_node()
 
 
 
@@ -244,7 +244,7 @@ class Mechoscore:
                 xmlrpc_client_to_subscriber_node = self.xmlrpc_clients_to_nodes[nodes]
 
                 if(publisher_topic == subscriber_topic and publisher_protocol == subscriber_protocol):
-                    
+
                     xmlrpc_client_to_publisher_node._update_publisher(publisher_id, subscriber_id, subscriber_ip, subscriber_port)
                     xmlrpc_client_to_subscriber_node._update_subscriber(subscriber_id, publisher_id, publisher_ip, publisher_port)
                     #xmlrpc_client_to_publisher_node._update_publisher(publisher_id, subscriber_id, subscriber_ip, subscriber_port)
@@ -258,6 +258,9 @@ class Mechoscore:
         Returns:
             N/A
         '''
+        print("[INFO]: mechoscore started.")
+        print("[INFO]: Node Connection Server started at %s:%d" % (self.ip, self.core_port))
+        print("[INFO]: Parameter Server started at %s:%d" % (self.ip, self.param_server_port))
         self.param_server_thread = threading.Thread(target=self.param_server.run, daemon=True)
 
         #Start the xmlrpc server of mechoscore and the parameter server
