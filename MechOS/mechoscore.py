@@ -132,7 +132,7 @@ class Mechoscore:
         self.node_information.pop(name)
         self.xmlrpc_clients_to_nodes[name]._kill_node()
 
-        
+
 
         return(True)
     def register_publisher(self, node_name, id, topic, ip, port, protocol):
@@ -149,10 +149,10 @@ class Mechoscore:
             protocol: Either tcp or udp.
         '''
 
-        self.node_information[node_name]["publishers"] = {id:{"topic":topic,
+        self.node_information[node_name]["publishers"][id] = {"topic":topic,
                                                          "ip":ip,
                                                          "port":port,
-                                                         "protocol":protocol}}
+                                                         "protocol":protocol}
 
         self.new_publisher_update_connections(node_name, id)
         print("[INFO]: Registering publisher with topic %s on Node %s" % (topic, node_name))
@@ -170,10 +170,10 @@ class Mechoscore:
             topic: The topic name that the subscriber will subscribe to get data from.
             protocol: Either udp or tcp.
         '''
-        self.node_information[node_name]["subscribers"] = {id:{"topic":topic,
+        self.node_information[node_name]["subscribers"][id] = {"topic":topic,
                                                                 "ip":ip,
                                                                 "port":port,
-                                                                "protocol":protocol}}
+                                                                "protocol":protocol}
         print("[INFO]: Registering subscriber with topic %s on Node %s" % (topic, node_name))
         self.new_subscriber_update_connections(node_name, id)
         return(True)
@@ -208,8 +208,10 @@ class Mechoscore:
                 xmlrpc_client_to_publisher_node = self.xmlrpc_clients_to_nodes[nodes]
 
                 if(publisher_topic == subscriber_topic and publisher_protocol == subscriber_protocol):
-                    xmlrpc_client_to_subscriber_node._update_subscriber(subscriber_id, publisher_id, publisher_ip, publisher_port)
+
                     xmlrpc_client_to_publisher_node._update_publisher(publisher_id, subscriber_id, subscriber_ip, subscriber_port)
+                    xmlrpc_client_to_subscriber_node._update_subscriber(subscriber_id, publisher_id, publisher_ip, publisher_port)
+                    #xmlrpc_client_to_publisher_node._update_publisher(publisher_id, subscriber_id, subscriber_ip, subscriber_port)
 
     def new_publisher_update_connections(self, node_name, publisher_id):
         '''
@@ -228,6 +230,7 @@ class Mechoscore:
         publisher_port = self.node_information[node_name]["publishers"][publisher_id]["port"]
         publisher_protocol = self.node_information[node_name]["publishers"][publisher_id]["protocol"]
 
+
         for nodes in self.node_information.keys():
 
             for subscriber_id in self.node_information[nodes]["subscribers"].keys():
@@ -241,8 +244,10 @@ class Mechoscore:
                 xmlrpc_client_to_subscriber_node = self.xmlrpc_clients_to_nodes[nodes]
 
                 if(publisher_topic == subscriber_topic and publisher_protocol == subscriber_protocol):
-                    xmlrpc_client_to_subscriber_node._update_subscriber(subscriber_id, publisher_id, publisher_ip, publisher_port)
+                    
                     xmlrpc_client_to_publisher_node._update_publisher(publisher_id, subscriber_id, subscriber_ip, subscriber_port)
+                    xmlrpc_client_to_subscriber_node._update_subscriber(subscriber_id, publisher_id, publisher_ip, publisher_port)
+                    #xmlrpc_client_to_publisher_node._update_publisher(publisher_id, subscriber_id, subscriber_ip, subscriber_port)
 
     def run(self):
         '''

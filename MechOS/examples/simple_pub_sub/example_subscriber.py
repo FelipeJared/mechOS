@@ -1,7 +1,7 @@
 from MechOS import mechos
 import time
 from MechOS.simple_messages.float_array import Float_Array
-
+from MechOS.simple_messages.bool import Bool
 def chatter_callback(chatter_data):
     '''
     Callback function for subscriber to pass data into.
@@ -11,8 +11,10 @@ def chatter_callback(chatter_data):
         time a spinOnce is called, the data being sent from the publisher is
         inserted here.
     '''
-    print(chatter_data)
+    print('1', chatter_data)
 
+def chatter_callback_2(chatter_data):
+    print('2', chatter_data)
 
 def listener():
     '''
@@ -22,7 +24,10 @@ def listener():
     listener_node = mechos.Node("listener")
 
     #create a subscriber to subscribe to topic chatter
-    sub = listener_node.create_subscriber("chatter", Float_Array(4), chatter_callback, protocol="udp")
+    sub = listener_node.create_subscriber("chatter_2", Bool(), chatter_callback, protocol="tcp")
+    print(sub.id)
+    sub_2 = listener_node.create_subscriber("chatter_2", Bool(), chatter_callback_2, protocol="tcp")
+    print(sub_2.id)
 
 
     while(1):

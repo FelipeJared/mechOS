@@ -151,8 +151,11 @@ class Node:
         publisher = self.node_publishers[publisher_id]
 
         if(publisher.protocol == "tcp"):
+
+            publisher_accept_thread = threading.Thread(target=self._publisher_accept_connection, args=[publisher_id, subscriber_id], daemon=True)
+            publisher_accept_thread.start()
             #allow the publish to accept tcp connection.
-            self._publisher_accept_connection(publisher_id, subscriber_id)
+            #self._publisher_accept_connection(publisher_id, subscriber_id)
 
         #Udp publishers don't need to accept a connection to send
         elif(publisher.protocol == "udp"):
@@ -172,9 +175,11 @@ class Node:
             subscriber_id: The unique id of the subscriber trying to connect to the publisher.
                             It may be from this node or a different node.
         '''
-        publisher = self.node_publishers[publisher_id]
-        conn, addr = publisher.server_socket.accept()
 
+        publisher = self.node_publishers[publisher_id]
+
+        conn, addr = publisher.server_socket.accept()
+        print("Connection Received", addr)
         conn.setblocking(False)
 
         #Maximum send buffer.
@@ -390,7 +395,7 @@ class Node:
         allowable = self.xmlrpc_client.register_subscriber(self.name, subscriber.id,
                                         subscriber.topic, subscriber.ip, subscriber.port, subscriber.protocol)
 
-
+        return(subscriber)
     def spin_once(self):
         '''
         Check for messages for each subscriber of the node.
@@ -434,7 +439,7 @@ class Node:
             self.message_format = message_format
 
             #generate a unique id
-            self.id = str(uuid.uuid1().hex)
+            self.id = str(uuid.uuid4().hex)
 
             #The socket connections of subscribers when the accpet() function is called.
             self.subscriber_tcp_connections = {}
@@ -538,7 +543,7 @@ class Node:
             self.message_format = message_format
 
             #generate a unique id
-            self.id = str(uuid.uuid1().hex)
+            self.id = str(uuid.uuid4().hex)
 
             self.daemon = True
             self.run_thread = True
