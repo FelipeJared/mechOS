@@ -460,6 +460,7 @@ class Node:
 
             self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, self.queue_size*self.message_format.size)
             self.server_socket.bind((self.ip, self.port))
             self.server_socket.listen()
 
@@ -475,6 +476,7 @@ class Node:
 
             self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, self.queue_size*self.message_format.size)
 
 
         def publish(self, message):
@@ -568,6 +570,7 @@ class Node:
             '''
             sub_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sub_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            sub_socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, fsel.queue_size*self.message_format.size)
             sub_socket.bind((self.ip, self.port))
             sub_socket.connect((publisher_ip, publisher_port))
 
@@ -582,6 +585,7 @@ class Node:
             '''
             sub_socket = socket.socket(socket.AF_INET,
                                         socket.SOCK_DGRAM)
+            sub_socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, fsel.queue_size*self.message_format.size)
             sub_socket.bind((self.ip, self.port))
             sub_socket.setblocking(False)
             self.publisher_udp_connections[publisher_id] = [sub_socket, publisher_ip, publisher_port]
