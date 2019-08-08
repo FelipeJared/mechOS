@@ -11,7 +11,7 @@ setuptools.setup(
     description="Mechatronics operating system for modular robotic systems",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/Mechatronics-SDSU/mechOS",
+    url="https://github.com/Mechatronics-SDSU/MechOS",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
