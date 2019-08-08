@@ -1,3 +1,10 @@
+'''
+Copyright 2019, David Pierce Walker-Howell, All rights reserved
+Author: David Pierce Walker-Howell<piercedhowell@gmail.com>
+Last Modified: 08/08/2019
+Description: mechos contains all the primary code for making nodes,
+             publisher, and subcribers to make a mechos node network.
+'''
 import socket
 import threading
 from xmlrpc.server import SimpleXMLRPCServer
@@ -65,7 +72,7 @@ class Node:
 
     def get_free_port(self, ip):
         '''
-        Get a free port to connect to.
+        Get a free port to connect to on a given ip.
 
         Parameters:
             ip: The ip address to find a free port on.
@@ -91,14 +98,17 @@ class Node:
         #Create a simple xmlrpc server
         self.xmlrpc_server = SimpleXMLRPCServer((self.xmlrpc_server_ip, self.xmlrpc_server_port), logRequests=False)
 
-        #Register functions with server
+        #Register functions with server so that mechoscore can call actions on a node.
         #Update a publisher on a subscriber trying to connect. Allow it to make a
         #connection.
         self.xmlrpc_server.register_function(self._update_publisher)
         self.xmlrpc_server.register_function(self._update_subscriber)
         self.xmlrpc_server.register_function(self._kill_node)
 
+        #Allow mechoscore to kill publishers connection to any subscribers
         self.xmlrpc_server.register_function(self._kill_publisher)
+
+        #Allow mechoscore to kill subscribers connection on ay publishers
         self.xmlrpc_server.register_function(self._kill_subscriber)
 
         self.xmlrpc_server.register_function(self._kill_subscriber_connection)
@@ -124,6 +134,8 @@ class Node:
 
     def _kill_node(self):
         '''
+        XMLRPC CALL FROM MECHOSCORE
+
         Kill the process (pid) that this node is running on.
 
         Parameters:
@@ -320,6 +332,14 @@ class Node:
 
     def _kill_publisher_connection(self, subscriber_id):
         '''
+        XMLRPC CALL FROM MECHOSCORE
+
+        Kill all publishers connections to subscriber given the subscriber's id.
+
+        Parameters:
+            subscriber_id: The unique id of the subscriber that the publisher should disconnect from.
+        Returns:
+            True
         '''
         for publisher_id in self.node_publishers.keys():
 
@@ -343,6 +363,8 @@ class Node:
             message_format: A message type format object that contains a pack and unpack
                             method for packing and unpacking bytes. It also must have the
                             byte size of the message.
+            queue_size: The maximum number of messages that the socket publisher should stack
+                        up for sending.
             ip: The ip address that you want to connect publishers server to be created on.
             port: The port address that you want to connect the publishers server to.
             protocol: Either tcp or udp protocol. Note only one topic can have one protocol.
@@ -363,6 +385,7 @@ class Node:
         elif(protocol == "udp"):
             publisher._create_udp_server()
 
+        #Register the publisher with mechoscore under the node created under.
         allowable = self.xmlrpc_client.register_publisher(self.name, publisher.id, publisher.topic,
                                 publisher.ip, publisher.port, publisher.protocol)
 
@@ -377,8 +400,12 @@ class Node:
 
         Parameters:
             topic: A well-defined topic name that some publisher will emit data from.
+            message_format: A message type format object that contains a pack and unpack
+                            method for packing and unpacking bytes. It also must have the
+                            byte size of the message.
             callback: A function with one parameter in which the subscriber will pass the
                         data it receives to.
+            queue_size: The maximum amount of messages the receive socket buffer should queue up
             protocol: Either tcp or udp protocol
         '''
         if ip == None:
@@ -391,13 +418,18 @@ class Node:
         #Add the subscriber to the node subscriber list.
         self.node_subscribers[subscriber.id] = subscriber
 
+        #Register the subscriber with mechoscore.
         allowable = self.xmlrpc_client.register_subscriber(self.name, subscriber.id,
                                         subscriber.topic, subscriber.ip, subscriber.port, subscriber.protocol)
 
         return(subscriber)
+
     def spin_once(self):
         '''
         Check for messages for each subscriber of the node.
+        This is the function that should be called to get messages
+        sent from publishers to subscribers. Usually this is put in a
+        thread in your program to continually receive messages.
 
         Parameters:
             N/A
@@ -425,6 +457,11 @@ class Node:
             Parameters:
                 topic: A well-defined topic name for subscriber to connect to the publisher
                         of the same name
+                message_format: A message type format object that contains a pack and unpack
+                                method for packing and unpacking bytes. It also must have the
+                                byte size of the message.
+                queue_size: The maximum number of messages that the socket publisher should stack
+                            up for sending.
                 ip: The ip address that you want to connect publishers server to be created on.
                 port: The port address that you want to connect the publishers server to.
                 protocol: Either tcp or udp protocol. Note only one topic can have one protocol.
@@ -480,16 +517,20 @@ class Node:
 
         def publish(self, message):
             '''
-            Publish a message to the topic of the subscriber. Note the message must
-            be of 'utf-8' type.
+            Publish a message to the topic of the subscriber. The message must
+            be of the type that the message_format object will pack and unpack.
+            For example, if the message_format is type simple_messages.bool.Bool(),
+            then a boolean value must be passed.
 
             Parameters:
-                message: A 'utf-8' type message to publish
+                message: A message that matches the type described in the message format
+                         object passed to the publisher.
 
             Returns
                 N/A
             '''
 
+            #Pack the message as bytes using the message format packer.
             message_encoded = self.message_format._pack(message)
             if(self.protocol == 'tcp'):
 
@@ -504,7 +545,7 @@ class Node:
                     except:
                         continue
             elif(self.protocol == 'udp'):
-                
+
                 subscriber_connections = list(self.subscriber_udp_connections.keys()).copy()
                 for subscriber_id in subscriber_connections:
                     try:
@@ -528,12 +569,14 @@ class Node:
             Create either a tcp or udp subscriber to the following topci
 
             Parameters:
-                topic: The name of the topic to subscribe to for data.
-                protocol: the protocol that the publishers of the given topic will
-                        publish on.
-
+                topic: A well-defined topic name that some publisher will emit data from.
+                message_format: A message type format object that contains a pack and unpack
+                                method for packing and unpacking bytes. It also must have the
+                                byte size of the message.
                 callback: A function with one parameter in which the subscriber will pass the
                             data it receives to.
+                queue_size: The maximum amount of messages the receive socket buffer should queue up
+                protocol: Either tcp or udp protocol
             '''
 
             #Initialize base thread class
@@ -567,8 +610,8 @@ class Node:
 
             Parameters:
                 publisher_id: The publisher id to to establish connection with.
-                ip: The ip of the publisher.
-                port: The port of the publisher
+                publisher_ip: The ip of the publisher.
+                publisher_port: The port of the publisher
             '''
             sub_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sub_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -579,11 +622,19 @@ class Node:
             #Set socket to non-blocking
             sub_socket.setblocking(False)
 
+            #Keep track of a socket connection to a publisher.
             self.publisher_tcp_connections[publisher_id] = sub_socket
-
 
         def _connect_to_udp_publisher(self, publisher_id, publisher_ip, publisher_port):
             '''
+            Connect to a udp publisher by looking to receive messages from the publishers ip and port.
+
+            Parameters:
+                publisher_id: The unique id of the publisher trying to receive from.
+                publisher_ip: The ip address of the publisher trying to receive from.
+                publisher_port: The port address of the publisher trying to receve from.
+            Returns:
+                N/A
             '''
             sub_socket = socket.socket(socket.AF_INET,
                                         socket.SOCK_DGRAM)
@@ -599,7 +650,7 @@ class Node:
             if possible.
 
             Parameters:
-                buffer_size: The maximum number of bytes to read for each message
+                N/A
             Returns:
                 N/A
             '''

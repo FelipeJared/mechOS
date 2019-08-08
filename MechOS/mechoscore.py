@@ -1,3 +1,9 @@
+'''
+Copyright 2019, David Pierce Walker-Howell, All rights reserved
+Author: David Pierce Walker-Howell<piercedhowell@gmail.com>
+Last Modified: 08/08/2019
+Description:
+'''
 import socket
 import threading
 from xmlrpc.server import SimpleXMLRPCServer
@@ -61,6 +67,8 @@ class Mechoscore:
         Parameters:
             node_name: The name of the node to be created.
             pid: The process id of the node.
+            xmlrpc_server_ip: The ip address that the node is running on.
+            xmlrpc_server_port: The port that the node is running on.
 
         Returns:
             True: If the node can be created.
@@ -69,7 +77,8 @@ class Mechoscore:
         if(name in self.node_information.keys()):
             return False
 
-        #Create an xmlrpc client to the newly registered node.
+        #Create an xmlrpc client to the newly registered node. This is so that
+        #mechoscore can make calls to the individual nodes.
         self.xmlrpc_clients_to_nodes[name] = xmlrpc.client.ServerProxy("http://" + \
                     xmlrpc_server_ip + ":" + \
                     str(xmlrpc_server_port))
@@ -111,19 +120,32 @@ class Mechoscore:
         node_information = self.node_information[name]
 
 
-        #Kill the publisher of the nodes
+        #Kill the publishers of the node
         for publisher_id in node_information["publishers"].keys():
 
+            #For each of the nodes in the network, see if the publisher connects to
+            #any subscribers. Disconnect the publisher from ALL subscribers it connects to.
+            #Also tell the subscribers that they no longer need to look for messages coming
+            #from this publisher.
             for node_name in self.node_information.keys():
 
+                #Go into the nodes that have subscribers connected to the current publisher being killed.
+                #Make the sockets of the subscribers disconnect from this publisher.
                 self.xmlrpc_clients_to_nodes[node_name]._kill_subscriber_connection(publisher_id)
 
             self.xmlrpc_clients_to_nodes[name]._kill_publisher(publisher_id)
 
+        #Kill the subscriber of the node.
         for subscriber_id in node_information["subscribers"].keys():
 
+            #For each of the nodes in the network, see if the subscriber subscribes to
+            #to any publishers of other nodes. Make it so that the publishers no longer
+            #need to try and send messages to the current subscriber being killed.
             for node_name in self.node_information.keys():
 
+                #Go into the nodes that have a publisher sending to the current subscriber being killed.
+                #Make the sockets of thos publishers disconnect from sending data to te subscriber
+                #being killed.
                 self.xmlrpc_clients_to_nodes[node_name]._kill_publisher_connection(subscriber_id)
 
             self.xmlrpc_clients_to_nodes[name]._kill_subscriber(subscriber_id)
@@ -167,8 +189,11 @@ class Mechoscore:
 
         Parameters:
             node_name: The name of the node registering the subscriber.
+            id: The unique id of the subscriber.
             topic: The topic name that the subscriber will subscribe to get data from.
             protocol: Either udp or tcp.
+        Returns:
+            N/A
         '''
         self.node_information[node_name]["subscribers"][id] = {"topic":topic,
                                                                 "ip":ip,
@@ -185,7 +210,8 @@ class Mechoscore:
         parts.
 
         Parameters:
-            N/A
+            node_name: The name of the node that has publisher who need to connect to this new subscriber.
+            subscriber_id: The id of the subscriber that a publisher of node_name needs to connect to.
         Returns:
             N/A
         '''
@@ -207,11 +233,11 @@ class Mechoscore:
 
                 xmlrpc_client_to_publisher_node = self.xmlrpc_clients_to_nodes[nodes]
 
+                #Only connect subscribers to a publisher if they have the same topic name and protocol type.
                 if(publisher_topic == subscriber_topic and publisher_protocol == subscriber_protocol):
 
                     xmlrpc_client_to_publisher_node._update_publisher(publisher_id, subscriber_id, subscriber_ip, subscriber_port)
                     xmlrpc_client_to_subscriber_node._update_subscriber(subscriber_id, publisher_id, publisher_ip, publisher_port)
-                    #xmlrpc_client_to_publisher_node._update_publisher(publisher_id, subscriber_id, subscriber_ip, subscriber_port)
 
     def new_publisher_update_connections(self, node_name, publisher_id):
         '''
@@ -251,7 +277,7 @@ class Mechoscore:
 
     def run(self):
         '''
-        Run the mechoscore server.
+        Run the mechoscore server. Also starts the parameter server.
 
         Parameters:
             N/A
