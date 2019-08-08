@@ -1,5 +1,4 @@
 '''
-Copyright 2019, David Pierce Walker-Howell, All rights reserved
 Author: David Pierce Walker-Howell<piercedhowell@gmail.com>
 Last Modified: 08/08/2019
 Description:
