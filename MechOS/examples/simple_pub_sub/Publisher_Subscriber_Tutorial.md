@@ -151,7 +151,7 @@ To acutally run a MechOS program, the `MechOS.mechoscore.py` script needs to be 
 ```
 Terminal 1:
 
-python -m MechOS.mechoscore.py
+python -m MechOS.mechoscore
 ```
 ```
 Terminal 2:
