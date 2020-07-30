@@ -1,5 +1,5 @@
 # MechOS
-The Mechatronics Operating System (MechOS) is a computer networking framework intended for creating modular software architectures for Robotics and other control systems. MechOS is primarily based on ZeroMQ, an open source distributed messaging framework used for carrying messages across TCP, IPC, UDP, etc.
+The Mechatronics Operating System (MechOS) is a computer networking framework intended for creating modular software architectures for Robotics and other control systems
 
 ## Motivation Behind MechOS
 
